@@ -1,0 +1,22 @@
+{
+  "benchmark_id": "evo_memory",
+  "format_version": 1,
+  "preferred_source": "local_pack",
+  "packs": [
+    {
+      "pack_id": "seed_v1",
+      "path": "packs/seed_v1/samples.jsonl",
+      "format": "jsonl",
+      "sample_count": 2,
+      "default_split": "local",
+      "description": "Seed local Evo-Memory pack",
+      "source_label": "data\\imports\\evo_memory_seed_v1.jsonl",
+      "metadata": {
+        "importer": "typhon.import_benchmark_pack",
+        "default_task_type": "imported_task",
+        "default_expected_answer_type": "short_text"
+      }
+    }
+  ],
+  "notes": "Preferred local benchmark-pack manifest."
+}

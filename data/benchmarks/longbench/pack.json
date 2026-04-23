@@ -1,0 +1,22 @@
+{
+  "benchmark_id": "longbench",
+  "format_version": 1,
+  "preferred_source": "local_pack",
+  "packs": [
+    {
+      "pack_id": "hf_english_smoke_v1",
+      "path": "packs/hf_english_smoke_v1/samples.jsonl",
+      "format": "jsonl",
+      "sample_count": 28,
+      "default_split": "test",
+      "description": "Official LongBench English smoke pack imported from Hugging Face.",
+      "source_label": "THUDM/LongBench:test",
+      "metadata": {
+        "importer": "typhon.import_benchmark_pack",
+        "default_task_type": "long_context_task",
+        "default_expected_answer_type": "short_text"
+      }
+    }
+  ],
+  "notes": "Preferred local benchmark-pack manifest."
+}
