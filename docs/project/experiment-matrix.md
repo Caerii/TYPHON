@@ -1,4 +1,6 @@
-# TYPHON Experiment Matrix
+# Experiment Matrix
+
+This is the canonical project tracker for benchmark coverage, baseline coverage, runtime status, and headline empirical artifacts.
 
 ## Benchmark Status
 
@@ -17,8 +19,8 @@
 
 | Baseline | Role | Status | Implementation source | Next action |
 | --- | --- | --- | --- | --- |
-| Attention baseline | local exact recall | implemented | local heuristic runner | add comparison summaries vs TYPHON v0 |
-| Gated DeltaNet via FLA | local retention baseline | implemented | WSL-backed FLA wrapper plus third-party 340M checkpoint | evaluate on larger LongBench slices and decide whether to keep this checkpoint family or switch to a stronger GDN checkpoint |
+| Attention baseline | local exact recall | implemented | local heuristic runner | keep as the simple in-repo control condition |
+| Gated DeltaNet via FLA | local retention baseline | implemented | WSL-backed FLA wrapper plus third-party 340M checkpoint | evaluate on larger LongBench slices and decide whether to keep this checkpoint family or switch to a stronger one |
 | PERK | fast-weight baseline | pending | official repo verified | inspect API and wrap |
 | MesaNet | fast-weight solver baseline | pending | FLA | inspect layer API and wrap |
 | TTT-E2E | continual-learning baseline | pending | official JAX repo verified | decide adapter boundary |
@@ -34,28 +36,28 @@
 | --- | --- | --- | --- | --- |
 | Extractive heuristic | control condition | implemented | local Python | keep as deterministic fallback |
 | Ollama local | Windows-native model backend | implemented | Windows localhost | start server and run a real local model |
-| LM Studio local | Windows-native OpenAI-compatible backend | implemented | Windows localhost | run evaluation against hosted local models |
-| OpenAI-compatible HTTP | generic server-backed model backend | implemented | WSL or remote localhost | connect vLLM, SGLang, llama.cpp, or Ollama OpenAI mode |
+| LM Studio local | Windows-native OpenAI-compatible backend | implemented | Windows localhost | keep as the canonical live local path |
+| OpenAI-compatible HTTP | generic server-backed model backend | implemented | WSL or remote localhost | connect vLLM, SGLang, llama.cpp, or compatible servers |
 
 ## TYPHON Roadmap Status
 
 | Milestone | Status | Blocking issue |
 | --- | --- | --- |
-| Repo substrate | in progress | none |
-| Benchmark registry | implemented | real dataset adapters still missing |
-| Smoke-test runner | implemented | no model execution yet |
-| Local benchmark asset discovery | implemented | local slices now span five benchmarks, but they are still curated subsets rather than upstream benchmark mirrors |
-| Heuristic scoring and evaluation summaries | implemented | depends on local reference answers, not external benchmark gold labels yet |
-| Context-pressure overrides | implemented | currently stress-tested on local heuristic runners only |
+| Repo substrate | implemented | none |
+| Benchmark registry | implemented | broader upstream adapters still missing |
+| Smoke-test runner | implemented | none |
+| Local benchmark asset discovery | implemented | local slices remain small |
+| Heuristic scoring and evaluation summaries | implemented | still depends on heuristic memory selection |
+| Context-pressure overrides | implemented | most useful on curated slices so far |
 | Runtime profiling | implemented | none |
-| TYPHON v0 config | implemented | refine after first real dataset path |
-| TYPHON v0 executable pipeline | implemented | uses heuristic signals, not learned updates yet |
-| Baseline wrappers | in progress | local attention baseline and first WSL-backed Gated DeltaNet baseline are implemented; broader baseline coverage is still missing |
-| Comparison artifacts | implemented | only local baseline comparison exists so far |
-| Real benchmark loaders | in progress | LongBench upstream adapter is implemented, but LoCoMo and the other families still need dedicated upstream adapters |
-| Model-backed inference backends | in progress | LM Studio-backed runs are working; broader server coverage and larger sample sets remain |
-| WSL vLLM runtime | in progress | vLLM is installed and a Qwen 4B server launch has started, but the endpoint has not served a benchmark request yet |
-| Benchmark-pack importer | implemented | external upstream benchmark replication still needs dedicated adapters |
+| TYPHON v0 config | implemented | refine after stronger benchmark and baseline coverage |
+| TYPHON v0 executable pipeline | implemented | uses heuristic signals, not learned updates |
+| Baseline wrappers | in progress | first external baseline exists; broader coverage still missing |
+| Comparison artifacts | implemented | external-baseline comparisons are still sparse |
+| Real benchmark loaders | in progress | LongBench adapter implemented; LoCoMo and others still pending |
+| Model-backed inference backends | in progress | LM Studio path works; broader runtime coverage remains |
+| WSL vLLM runtime | in progress | environment exists; no stable benchmark-serving path validated yet |
+| Benchmark-pack importer | implemented | benchmark-specific import adapters still need expansion |
 
 ## Live Memory Compare
 

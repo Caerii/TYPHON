@@ -1,6 +1,10 @@
-# TYPHON Decision Log
+# Legacy Decision Log
 
-## 2026-04-22
+This file preserves the pre-ADR flat decision log for historical continuity.
+
+The canonical source for active architectural decisions is now the [ADR directory](../adr/README.md).
+
+## 2026-04-22 Legacy Entries
 
 ### 1. PyTorch-first research substrate
 
