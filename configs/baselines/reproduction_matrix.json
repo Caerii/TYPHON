@@ -1,0 +1,53 @@
+{
+  "baselines": [
+    {
+      "id": "attention_baseline",
+      "role": "local_exact_recall",
+      "status": "implemented",
+      "source": "local",
+      "notes": "Implemented as a heuristic local attention-style baseline artifact path."
+    },
+    {
+      "id": "gated_deltanet",
+      "role": "local_retention",
+      "status": "pending",
+      "source": "https://github.com/NVlabs/GatedDeltaNet",
+      "notes": "Inspect FLA-compatible path first."
+    },
+    {
+      "id": "perk",
+      "role": "fast_weight_adapter",
+      "status": "pending",
+      "source": "https://github.com/eric11eca/perk",
+      "notes": "High-priority baseline for TYPHON v0 comparison."
+    },
+    {
+      "id": "mesanet",
+      "role": "fast_weight_solver",
+      "status": "pending",
+      "source": "https://github.com/fla-org/flash-linear-attention",
+      "notes": "Likely imported via FLA rather than standalone."
+    },
+    {
+      "id": "ttt_e2e",
+      "role": "continual_learning_sequence_model",
+      "status": "pending",
+      "source": "https://github.com/test-time-training/e2e",
+      "notes": "JAX integration decision needed."
+    },
+    {
+      "id": "memoryllm_mplus",
+      "role": "latent_and_long_term_memory",
+      "status": "pending",
+      "source": "https://github.com/wangyu-ustc/MemoryLLM",
+      "notes": "Use both MemoryLLM and M+ from the same source tree."
+    },
+    {
+      "id": "fwpkm",
+      "role": "sparse_episodic_memory",
+      "status": "pending",
+      "source": "https://github.com/SakanaAI/fast-weight-product-key-memory",
+      "notes": "Primary reference for TYPHON episodic layer."
+    }
+  ]
+}

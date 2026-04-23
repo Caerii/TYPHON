@@ -1,0 +1,15 @@
+{
+  "id": "babilong",
+  "name": "BABILong",
+  "family": "long_context_reasoning",
+  "paper_url": "https://arxiv.org/abs/2406.10149",
+  "official_repo": "",
+  "dataset_ref": "BABILong",
+  "tasks": [
+    "reasoning_in_a_haystack"
+  ],
+  "default_chunk_size": 128,
+  "default_local_window": 96,
+  "smoke_fixture": "babilong.json",
+  "notes": "Controlled stress test for long-range fact chaining."
+}

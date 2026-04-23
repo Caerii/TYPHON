@@ -1,0 +1,9 @@
+{
+  "task_type": "aggregation",
+  "question": "What repeated requirement appears across the long report?",
+  "context": "Section 1 states that memory evaluations require matched compute. Section 2 discusses user studies and repeats that memory evaluations require matched compute. Section 3 addresses systems risks and again says memory evaluations require matched compute. Section 4 adds reporting guidance and still repeats the same requirement.",
+  "expected_answer_type": "summary",
+  "metadata": {
+    "source_type": "report"
+  }
+}

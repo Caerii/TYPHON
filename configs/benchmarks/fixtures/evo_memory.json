@@ -1,0 +1,9 @@
+{
+  "task_type": "streaming_task_sequence",
+  "question": "Which prior lesson should the agent reuse on the new task stream?",
+  "context": "Episode 1: The agent learned that the simulator rejects plans unless every step includes an explicit tool name. Episode 2: The agent improved its performance by checking tool availability before issuing commands. Episode 3: A new task asks the agent to produce a multi-step workflow for database repair with external tools.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "episodes": 3
+  }
+}

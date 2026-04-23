@@ -1,0 +1,9 @@
+{
+  "task_type": "feedback_driven_update",
+  "question": "What feedback should be retained for later tasks?",
+  "context": "Interaction 1: The user corrected the system and said all audit timestamps must be reported in UTC. Interaction 2: The user rejected a summary because it omitted the remediation owner. Interaction 3: The user later asked for a new incident report generated from a different dataset.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "feedback_rounds": 3
+  }
+}

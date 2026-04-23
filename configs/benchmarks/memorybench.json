@@ -1,0 +1,17 @@
+{
+  "id": "memorybench",
+  "name": "MemoryBench",
+  "family": "continual_learning",
+  "paper_url": "https://arxiv.org/abs/2510.17281",
+  "official_repo": "https://github.com/LittleDinoC/MemoryBench",
+  "dataset_ref": "THUIR/MemoryBench",
+  "tasks": [
+    "feedback_driven_memory",
+    "declarative_memory",
+    "procedural_memory"
+  ],
+  "default_chunk_size": 96,
+  "default_local_window": 64,
+  "smoke_fixture": "memorybench.json",
+  "notes": "Primary continual-learning benchmark for user feedback."
+}

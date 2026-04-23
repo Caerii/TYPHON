@@ -1,0 +1,36 @@
+{
+  "id": "gated_deltanet_fla",
+  "name": "Gated DeltaNet via FLA (WSL)",
+  "description": "Model-backed baseline using FLA's Hugging Face-compatible Gated DeltaNet implementation inside WSL. The default checkpoint is a third-party 340M community model because NVIDIA does not release pretrained Gated DeltaNet weights.",
+  "type": "external_model_backbone",
+  "retrieval_strategy": "full_context_generation_with_model_truncation",
+  "uses_runtime_profile": false,
+  "supports_families": [
+    "long_context_reasoning",
+    "conversational_memory",
+    "streaming_agentic_memory",
+    "continual_learning"
+  ],
+  "local_window_policy": "model_context_limit",
+  "max_chunks_to_retrieve": 0,
+  "settings": {
+    "runtime_target": "wsl",
+    "wsl_python": ".venv-wsl-vllm/bin/python",
+    "checkpoint_id": "linear-moe-hub/Gated-Deltanet-340M",
+    "tokenizer_id": "linear-moe-hub/Gated-Deltanet-340M",
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "max_input_tokens": 2048,
+    "max_output_tokens": 64,
+    "temperature": 0.0,
+    "timeout_seconds": 1800,
+    "trust_remote_code": true,
+    "checkpoint_conversion": {
+      "tie_word_embeddings": false,
+      "drop_suffixes": [
+        ".attn.D"
+      ],
+      "split_fused_swiglu_gate_proj": true
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "benchmark_id": "longbench",
+  "dataset_id": "THUDM/LongBench",
+  "split": "test",
+  "pack_id": "hf_english_smoke_v1",
+  "description": "Official LongBench English smoke pack imported from Hugging Face.",
+  "language": "en",
+  "max_samples_per_task": 2,
+  "length_buckets": [
+    {
+      "name": "0_4k",
+      "min_length": 0,
+      "max_length": 4000
+    },
+    {
+      "name": "4k_8k",
+      "min_length": 4001,
+      "max_length": 8000
+    },
+    {
+      "name": "8k_plus",
+      "min_length": 8001
+    }
+  ],
+  "tasks": [
+    {"source_name": "narrativeqa"},
+    {"source_name": "qasper"},
+    {"source_name": "multifieldqa_en"},
+    {"source_name": "hotpotqa"},
+    {"source_name": "2wikimqa"},
+    {"source_name": "musique"},
+    {"source_name": "gov_report"},
+    {"source_name": "qmsum"},
+    {"source_name": "multi_news"},
+    {"source_name": "trec"},
+    {"source_name": "triviaqa"},
+    {"source_name": "samsum"},
+    {"source_name": "passage_count"},
+    {"source_name": "passage_retrieval_en"}
+  ]
+}

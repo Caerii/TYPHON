@@ -1,0 +1,16 @@
+{
+  "id": "attention_baseline",
+  "name": "Local Attention Baseline",
+  "description": "Heuristic local-exact baseline that only retains recent context and ranks accessible chunks by query overlap.",
+  "type": "local_exact_recall",
+  "retrieval_strategy": "overlap_with_recent_bias",
+  "uses_runtime_profile": true,
+  "supports_families": [
+    "long_context_reasoning",
+    "conversational_memory",
+    "streaming_agentic_memory",
+    "continual_learning"
+  ],
+  "local_window_policy": "runtime_profile",
+  "max_chunks_to_retrieve": 3
+}

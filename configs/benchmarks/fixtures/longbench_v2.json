@@ -1,0 +1,10 @@
+{
+  "task_type": "multi_document_qa",
+  "question": "Which lab introduced the retrieval-signal analysis, and what result should be compared against the code repository benchmark?",
+  "context": "Document A: The memory systems group at North Ridge Lab published a report on retrieval signal analysis and long-context evaluation practices. Their report warns that benchmark claims must always include a compute budget. Document B: The systems evaluation team built a code repository benchmark where performance should be compared only under matched inference cost. Document C: A later memo summarizes both statements and says the retrieval-signal analysis came from North Ridge Lab.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "length_bucket": "short",
+    "domain": "research_memos"
+  }
+}

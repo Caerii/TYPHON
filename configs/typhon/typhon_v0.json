@@ -1,0 +1,45 @@
+{
+  "id": "typhon_v0",
+  "description": "Heuristic four-layer TYPHON preview tuned for local workstation execution, with adapter-first fast memory and bounded episodic/cross-episode planning.",
+  "backbone": {
+    "type": "attention_or_retention",
+    "candidate_priority": [
+      "gated_deltanet",
+      "flash_attention_baseline"
+    ],
+    "local_window_tokens": 1024
+  },
+  "fast_memory": {
+    "type": "adapter",
+    "update_rule": "gradient_descent",
+    "candidate_priority": [
+      "perk_style_lora",
+      "gradmem_style_memory_tokens"
+    ],
+    "chunk_size_tokens": 512,
+    "max_update_steps": 8
+  },
+  "episodic_memory": {
+    "enabled": true,
+    "mode": "heuristic_preview"
+  },
+  "cross_episode_memory": {
+    "enabled": true,
+    "mode": "heuristic_preview"
+  },
+  "write_policy": {
+    "type": "heuristic_utility_gate",
+    "signals": [
+      "surprise",
+      "gradient_norm",
+      "novelty"
+    ],
+    "write_budget_per_sequence": 8
+  },
+  "budget": {
+    "report_training_flops": true,
+    "report_inference_flops": true,
+    "report_active_memory_size": true,
+    "report_latency_ms": true
+  }
+}

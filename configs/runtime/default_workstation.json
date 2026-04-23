@@ -1,0 +1,22 @@
+{
+  "id": "default_workstation",
+  "match": {
+    "min_vram_mib": 0,
+    "max_vram_mib": 2147483647
+  },
+  "recommendations": {
+    "device": "cuda_if_available_else_cpu",
+    "precision": "bf16_or_fp16",
+    "target_model_scale": "0.5B_to_1B_or_adapter_only",
+    "max_eval_batch_size": 1,
+    "preferred_local_window_tokens": 1024,
+    "preferred_chunk_size_tokens": 256,
+    "max_practical_context_tokens": 16384,
+    "recommended_fast_memory_type": "adapter",
+    "recommended_solver_policy": "defer_full_solver",
+    "notes": [
+      "Use adapter-style fast memory first.",
+      "Do not assume multi-billion-parameter full finetuning is practical."
+    ]
+  }
+}

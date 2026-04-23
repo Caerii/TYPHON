@@ -1,0 +1,20 @@
+{
+  "name": "lmstudio_qwen35_9b_vlm_primary",
+  "backend": "lmstudio_local",
+  "model": "qwen3.5-9b-vlm",
+  "benchmarks": [
+    "longbench_v2",
+    "locomo",
+    "locomo_plus"
+  ],
+  "sample_source": "local",
+  "chunk_size": 24,
+  "local_window_tokens": 24,
+  "max_output_tokens": 128,
+  "temperature": 0.0,
+  "request_timeout_seconds": 600.0,
+  "notes": [
+    "Primary live evaluation preset for this RTX 3080 10 GB workstation.",
+    "Use one hosted LM Studio model at a time to avoid unnecessary VRAM churn and backend model swaps."
+  ]
+}

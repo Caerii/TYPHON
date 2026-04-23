@@ -1,0 +1,9 @@
+{
+  "task_type": "conversation_qa",
+  "question": "What preference did Jordan mention earlier that matters for the follow-up plan?",
+  "context": "Session 1: Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work. Session 2: Jordan and Riley discussed a conference in Boston and agreed they would book travel later. Session 3: Riley asked whether they should take the cheapest overnight option or find a daytime flight.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "sessions": 3
+  }
+}

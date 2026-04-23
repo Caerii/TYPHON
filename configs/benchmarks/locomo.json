@@ -1,0 +1,17 @@
+{
+  "id": "locomo",
+  "name": "LoCoMo",
+  "family": "conversational_memory",
+  "paper_url": "https://arxiv.org/abs/2402.17753",
+  "official_repo": "",
+  "dataset_ref": "LoCoMo",
+  "tasks": [
+    "qa",
+    "event_summarization",
+    "multimodal_dialogue_generation"
+  ],
+  "default_chunk_size": 128,
+  "default_local_window": 96,
+  "smoke_fixture": "locomo.json",
+  "notes": "Primary long-term dialogue benchmark."
+}

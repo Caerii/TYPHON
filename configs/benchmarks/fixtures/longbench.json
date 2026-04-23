@@ -1,0 +1,9 @@
+{
+  "task_type": "long_context_qa",
+  "question": "What constraint did the project lead impose on every experiment record?",
+  "context": "Meeting notes: The project lead reviewed several failed experiments and concluded that every run must record model size, context length, and compute budget. The lead emphasized that results without those fields are not publishable. A later note repeated the same requirement during planning.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "language": "en"
+  }
+}

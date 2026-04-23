@@ -1,0 +1,17 @@
+{
+  "id": "evo_memory",
+  "name": "Evo-Memory",
+  "family": "streaming_agentic_memory",
+  "paper_url": "https://arxiv.org/abs/2511.20857",
+  "official_repo": "",
+  "dataset_ref": "Evo-Memory",
+  "tasks": [
+    "streaming_reasoning",
+    "agentic_reuse",
+    "self_evolving_memory"
+  ],
+  "default_chunk_size": 96,
+  "default_local_window": 64,
+  "smoke_fixture": "evo_memory.json",
+  "notes": "Primary streaming benchmark for persistent memory evaluation."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "zeroscrolls",
+  "name": "ZeroSCROLLS",
+  "family": "long_context_reasoning",
+  "paper_url": "https://arxiv.org/abs/2305.14196",
+  "official_repo": "",
+  "dataset_ref": "ZeroSCROLLS",
+  "tasks": [
+    "zero_shot_long_text_understanding"
+  ],
+  "default_chunk_size": 192,
+  "default_local_window": 128,
+  "smoke_fixture": "zeroscrolls.json",
+  "notes": "Still used in recent qTTT evaluations."
+}

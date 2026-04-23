@@ -1,0 +1,16 @@
+{
+  "id": "locomo_plus",
+  "name": "LoCoMo-Plus",
+  "family": "conversational_memory",
+  "paper_url": "https://arxiv.org/abs/2602.10715",
+  "official_repo": "https://github.com/xjtuleeyf/Locomo-Plus",
+  "dataset_ref": "LoCoMo-Plus",
+  "tasks": [
+    "cognitive_memory",
+    "latent_constraint_retention"
+  ],
+  "default_chunk_size": 128,
+  "default_local_window": 96,
+  "smoke_fixture": "locomo_plus.json",
+  "notes": "Tests cognitive memory rather than explicit factual lookup alone."
+}

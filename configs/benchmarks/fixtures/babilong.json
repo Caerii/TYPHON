@@ -1,0 +1,14 @@
+{
+  "task_type": "reasoning_in_a_haystack",
+  "question": "Which room contains the calibration key after the final transfer?",
+  "context": "Alice moved the calibration key to the blue room. Bob visited the blue room and later took the calibration key to the green room. Several unrelated maintenance logs followed. Carla checked the sensors in the red room. Dana updated the schedule. Finally, Bob confirmed that the calibration key was still in the green room.",
+  "expected_answer_type": "classification",
+  "metadata": {
+    "entities": [
+      "Alice",
+      "Bob",
+      "Carla",
+      "Dana"
+    ]
+  }
+}

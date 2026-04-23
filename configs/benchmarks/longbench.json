@@ -1,0 +1,15 @@
+{
+  "id": "longbench",
+  "name": "LongBench",
+  "family": "long_context_reasoning",
+  "paper_url": "https://aclanthology.org/2024.acl-long.172",
+  "official_repo": "https://github.com/THUDM/LongBench",
+  "dataset_ref": "THUDM/LongBench",
+  "tasks": [
+    "multi_task_long_context_understanding"
+  ],
+  "default_chunk_size": 160,
+  "default_local_window": 96,
+  "smoke_fixture": "longbench.json",
+  "notes": "Cheaper benchmark for the first real model runs."
+}

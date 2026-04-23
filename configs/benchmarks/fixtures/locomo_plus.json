@@ -1,0 +1,9 @@
+{
+  "task_type": "cognitive_memory",
+  "question": "Which plan best respects the user's latent constraint?",
+  "context": "Conversation turn 1: The user says they are recovering from burnout and want a quieter quarter without extra travel. Turn 8: The assistant suggests exploring visible opportunities. Turn 14: The user says promotion matters less than stability right now. Turn 27: The team later asks whether the user should volunteer for a multi-city roadshow.",
+  "expected_answer_type": "short_text",
+  "metadata": {
+    "latent_constraint": "prefer stability and reduced travel"
+  }
+}

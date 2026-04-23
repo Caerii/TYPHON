@@ -1,0 +1,24 @@
+{
+  "id": "rtx3080_10gb",
+  "match": {
+    "gpu_name_contains": "RTX 3080",
+    "min_vram_mib": 9728,
+    "max_vram_mib": 11264
+  },
+  "recommendations": {
+    "device": "cuda",
+    "precision": "fp16_or_bf16_if_supported",
+    "target_model_scale": "0.5B_to_1.5B_or_adapter_only",
+    "max_eval_batch_size": 1,
+    "preferred_local_window_tokens": 768,
+    "preferred_chunk_size_tokens": 192,
+    "max_practical_context_tokens": 8192,
+    "recommended_fast_memory_type": "lora_style_adapter",
+    "recommended_solver_policy": "avoid_heavy_chunkwise_solvers_initially",
+    "notes": [
+      "10 GB VRAM is enough for careful local experimentation, not careless baseline sprawl.",
+      "Prefer bounded windows, quantization where appropriate, and adapter-style updates.",
+      "Treat long-context experiments above 8k to 16k tokens as budget-sensitive."
+    ]
+  }
+}

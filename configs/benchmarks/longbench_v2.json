@@ -1,0 +1,20 @@
+{
+  "id": "longbench_v2",
+  "name": "LongBench v2",
+  "family": "long_context_reasoning",
+  "paper_url": "https://arxiv.org/abs/2412.15204",
+  "official_repo": "https://github.com/THUDM/LongBench",
+  "dataset_ref": "THUDM/LongBench-v2",
+  "tasks": [
+    "single_document_qa",
+    "multi_document_qa",
+    "long_in_context_learning",
+    "long_dialogue_history",
+    "code_repo_understanding",
+    "long_structured_data"
+  ],
+  "default_chunk_size": 192,
+  "default_local_window": 128,
+  "smoke_fixture": "longbench_v2.json",
+  "notes": "Primary long-context reasoning benchmark for early substrate validation."
+}
