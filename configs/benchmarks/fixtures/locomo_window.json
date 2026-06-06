@@ -1,0 +1,8 @@
+{
+  "task_type": "qa",
+  "question": "Who is the platform team's security lead?",
+  "context": "Session 1: At kickoff, Dana was named the security lead for the platform team and now owns all incident response. Session 2: The group debated whether to move the weekly standup to Tuesday mornings instead of Mondays. Session 3: Someone proposed replacing the office coffee machine, and opinions were split for a while. Session 4: We reviewed the updated onboarding slides and argued about the color palette and the fonts. Session 5: Friday's fire drill went smoothly and the whole floor cleared out in about ten minutes.",
+  "expected_answer_type": "short_text",
+  "reference_answers": ["Dana"],
+  "metadata": {"probe": "window_recall", "stale_value": null}
+}

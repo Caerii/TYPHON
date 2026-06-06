@@ -1,0 +1,15 @@
+{
+  "id": "locomo_window",
+  "name": "LoCoMo (window-pressure recall)",
+  "family": "conversational_memory",
+  "paper_url": "https://arxiv.org/abs/2402.17753",
+  "official_repo": "",
+  "dataset_ref": "LoCoMo",
+  "tasks": [
+    "qa"
+  ],
+  "default_chunk_size": 40,
+  "default_local_window": 40,
+  "smoke_fixture": "locomo_window.json",
+  "notes": "Cross-episode RECALL under a bounded local window. Small chunk_size/local_window (1 accessible chunk) so a multi-session context pushes the answer-bearing first session OUT of the attention baseline's window. The answer is an entity-entity fact that Graphiti extracts reliably, so the test isolates persistence (external store vs bounded window), not extraction quality. Pair with `locomo` (supersession, everything in-window)."
+}
