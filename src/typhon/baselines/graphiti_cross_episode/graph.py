@@ -18,6 +18,7 @@ from ._deps import (
     COMBINED_HYBRID_SEARCH_RRF,
     EDGE_HYBRID_SEARCH_RRF,
     EntityEdge,
+    EpisodeType,
     Graphiti,
     IMPORT_ERROR,
     LLMConfig,
@@ -96,8 +97,6 @@ async def _ingest_episodes(
     graphiti: Any, sample: BenchmarkSample, settings: dict[str, Any], group_id: str
 ) -> None:
     """Ingest a sample's sessions as ordered episodes (increasing valid-time) into group_id."""
-    from ._deps import EpisodeType
-
     base_time = datetime.now(timezone.utc)
     guided = bool(settings.get("guided_extraction", True))
     entity_types = GUIDED_ENTITY_TYPES if guided else None

@@ -33,3 +33,6 @@ data/benchmarks/*/
 # Generated from the raw LoCoMo dataset (large; ~11k-word context repeated per QA).
 # Regenerate via: python scripts/build_locomo_benchmark.py --input locomo10.json
 data/benchmarks/locomo_real/
+# Per-run artifacts from scripts/compare_cross_episode.py (regenerated; curated
+# snapshots are committed alongside results/cross_episode/README.md).
+results/cross_episode/_runs/
