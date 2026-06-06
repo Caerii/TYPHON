@@ -15,6 +15,19 @@ platform.
 
 ## Lever 1 — Structured current-attributes + summary regeneration (the true best-of-both)
 
+**⚠️ Both halves probed — neither is a quick win (status: open, harder than scoped).**
+- *Attributes:* a throwaway test with a typed `Configurable {current_value}` entity type left
+  `node.attributes = null` on all three supersession cases — the subjects weren't classified
+  to the custom type / the attribute pass didn't populate the field. Getting values into
+  structured attributes needs real work on entity modeling + ensuring the attribute-extraction
+  pass runs and fills fields.
+- *Summary regen (fork):* already attempted and reverted (see ADR 0009 §5) — the leak is the
+  cumulative LLM summary, not the edge-append, and a sample with zero edges still leaks.
+- *Silver lining:* the generated summaries are already fairly temporal (`SQLite will be used`,
+  `Postgres was chosen`, `Sam owns`); the failure is that the extractive `predict_answer`
+  still selects the stale sentence — so a **temporal-aware reranker** (prefer current-tense /
+  current-edge-aligned sentences) may be a lighter third angle than either half above.
+
 **Problem.** A changed fact ("rate limit 100 → 40") leaks the stale value because the node
 `summary` is LLM-written from the *first* episode and never regenerated. The
 `current_edges`/`bitemporal` modes avoid the summary but then lose values that live only in
