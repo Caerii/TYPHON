@@ -74,9 +74,26 @@ irreducible at retrieval time — the stale value *is* an entity name (`Postgres
 carries a current edge.
 
 **The located limit:** entity-name facts and value facts want opposite retrieval modes, and
-no retrieval-time knob resolves both. The true best-of-both requires **write-time bi-temporal
-node summaries** (re-summarize each node from its *current* edges only) — a Graphiti-internals
-change, and the clear next direction.
+no retrieval-time knob resolves both.
+
+**Write-time fix attempted in the fork — and it is not a quick win** (see
+`comparison_forkfix_attempt_2026-06-06.txt`). We forked graphiti-core
+(`superintelligent-graphiti`) and filtered superseded edges out of the node-summary build
+(`_build_edges_by_node`, gated by `GRAPHITI_SUMMARIZE_CURRENT_ONLY`). It made **no
+difference** (supersession leak stayed 3/3), because the leak is not in the edge-fact
+append we filtered: the node `summary` is **LLM-generated and cumulative**, written from
+session 1's episode (`"public API rate limit is 100 requests per minute"`) and *not
+regenerated* when session 3 supersedes it — and for that sample the graph had **zero
+edges**, so the filter never applied. We reverted the change.
+
+Even a full summary *regeneration* (rebuild each node's summary from current edges only)
+would not fully resolve it: the current value `40` was never captured as an edge
+(extraction quality), and a legitimate current fact can mention the old value (`db`:
+"use SQLite, replacing Postgres"). **So the recall↔precision tradeoff is fundamental to
+Graphiti's design (LLM-written cumulative summaries) plus cheap-LLM extraction — not a
+3-line fix.** The real resolution is two harder pieces: (1) extraction that records
+value-updates as **structured, current node attributes**, and (2) **regenerating** node
+summaries on supersession. Until then, navigate the tradeoff with `node_text_mode`.
 
 ## Foundations added this pass
 

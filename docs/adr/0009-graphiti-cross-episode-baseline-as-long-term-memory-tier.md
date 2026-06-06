@@ -98,14 +98,24 @@ Conclusions:
    current incident edges, no summary) cuts the leak to **1/3** and keeps window_recall 5/5,
    but loses value/attribute recall (0.85 → 0.37) and can't fix the case where the stale
    value *is* an entity name (`Postgres`). **Entity-name and value facts want opposite
-   modes** — the true fix is bi-temporal node summaries.
+   modes** — and the write-time fix is harder than it looks (see 5).
 3. **Stability:** 3 trials, **std=0 on every headline metric** (window_recall 5/5,
    supersession leak 3/3 each trial) — deterministic at temp=0 once extraction is guided.
-4. Real LoCoMo is **wired** (`locomo_real` benchmark + importer + CLI). Next levers:
-   **bi-temporal / current-only node summaries** (best-of-both) and
-   **shared-graph-per-conversation** (efficient graphiti on real LoCoMo).
+4. **Shared-graph-per-conversation** is implemented (ingest a conversation once, answer all
+   its QA against it; validated on real LoCoMo — a single graph for conv-26). Real LoCoMo is
+   **wired** (`locomo_real` benchmark + importer + CLI).
+5. **The write-time fix was attempted in the fork and does NOT resolve the leak.** We forked
+   graphiti-core (`superintelligent-graphiti`) and filtered superseded edges out of the
+   summary build (`_build_edges_by_node`, env-gated by `GRAPHITI_SUMMARIZE_CURRENT_ONLY`).
+   The leak stayed **3/3** — because the node `summary` is LLM-generated + cumulative (not
+   the edge-append we filtered; not regenerated on supersession), and the leaking sample had
+   *zero* edges. Reverted. Even a full summary regeneration would miss values never captured
+   as current edges (extraction quality) and keep legitimate current mentions of old values
+   (`db`: "use SQLite, replacing Postgres"). So the tradeoff is **fundamental** to Graphiti's
+   design + cheap-LLM extraction; the real resolution needs structured current-attribute
+   extraction **and** summary regeneration. Navigate it today with `node_text_mode`.
 
-Foundations added: `StrictSchemaClient`, guided extraction, combined edge+node search
-(`search_mode` + `node_text_mode` knobs), real-LoCoMo importer (`locomo_real`), an eval
-aggregation module, and **TYPHON's first test suite** (`tests/`, 27 tests, `pytest` config
-in `pyproject.toml`).
+Foundations: `StrictSchemaClient`, guided extraction, combined edge+node search
+(`search_mode` + `node_text_mode` knobs), shared-graph-per-conversation, real-LoCoMo importer
+(`locomo_real`), an eval aggregation module, the package decomposition, and **TYPHON's first
+test suite** (`tests/`, 36 tests, `pytest` config in `pyproject.toml`).
