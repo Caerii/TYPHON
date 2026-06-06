@@ -27,3 +27,9 @@ data/benchmarks/*/
 !data/benchmarks/*/
 !data/benchmarks/*/*.jsonl
 !data/benchmarks/*/*.json
+
+# Local-only venv for the optional graphiti baseline (py3.12 + graphiti-core).
+.venv-graphiti/
+# Generated from the raw LoCoMo dataset (large; ~11k-word context repeated per QA).
+# Regenerate via: python scripts/build_locomo_benchmark.py --input locomo10.json
+data/benchmarks/locomo_real/

@@ -1,0 +1,15 @@
+{
+  "id": "locomo_real",
+  "name": "LoCoMo (real dataset)",
+  "family": "conversational_memory",
+  "paper_url": "https://arxiv.org/abs/2402.17753",
+  "official_repo": "https://github.com/snap-research/locomo",
+  "dataset_ref": "LoCoMo",
+  "tasks": [
+    "conversation_qa"
+  ],
+  "default_chunk_size": 128,
+  "default_local_window": 96,
+  "smoke_fixture": "locomo_real.json",
+  "notes": "Real LoCoMo (snap-research locomo10.json): multi-session dialogues with real timestamps + QA over the full history. Generate the local pack with `python scripts/build_locomo_benchmark.py --input locomo10.json --id locomo_real` (data/benchmarks/locomo_real/ is gitignored — it repeats the long conversation context per QA). Efficient graphiti_cross_episode runs need shared-graph-per-conversation (ingest each conversation once); attention_baseline runs per-sample as-is."
+}
