@@ -62,24 +62,33 @@ Two knobs navigate this: `search_mode` (`edges` | `combined`, default `combined`
 | `node_text_mode` | window_recall | superseded leak | supersession recall |
 |---|---|---|---|
 | `summary` (default, recall-max) | 5/5 | 3/3 | 0.85 |
-| `current_edges` | 5/5 | **1/3** | 0.37 |
+| `current_edges` (top-K current edges) | 5/5 | **1/3** | 0.37 |
+| `bitemporal` (full-graph current edges; drop stale-only nodes) | 5/5 | **1/3** | 0.37 |
 
-`current_edges` drops the history-aggregating summary (uses name + current incident edges):
-it keeps window_recall perfect and cuts the leak to 1/3, but loses value/attribute recall
-(those facts live in summaries, not names/edges), and the last leak is irreducible — the
-stale value *is* an entity name (`Postgres`). **Entity-name facts and value facts want
-opposite modes.** The true best-of-both — **bi-temporal node summaries** (re-summarize from
-current edges only) — is a Graphiti-internals change, tracked as future work.
+The precision modes drop the history-aggregating summary (name + current incident edges);
+`bitemporal` additionally fetches each node's *full* incident-edge set and drops stale-only
+nodes. Both keep window_recall perfect (5/5) and cut the leak to 1/3, but lose value/attribute
+recall (0.85 → 0.37): those facts (`40 rpm`, `March 14`, `peanuts`) live in the node
+**summary**, which Graphiti generates from *all* edges at write-time. The last leak is
+irreducible at retrieval time — the stale value *is* an entity name (`Postgres`) that still
+carries a current edge.
+
+**The located limit:** entity-name facts and value facts want opposite retrieval modes, and
+no retrieval-time knob resolves both. The true best-of-both requires **write-time bi-temporal
+node summaries** (re-summarize each node from its *current* edges only) — a Graphiti-internals
+change, and the clear next direction.
 
 ## Foundations added this pass
 
 - `StrictSchemaClient` (strict structured outputs over Together).
 - Guided extraction (`GUIDED_ENTITY_TYPES` + `GUIDED_EXTRACTION_INSTRUCTIONS`),
   session-marker stripping, `current_facts_only`/`prefer_current`, combined edge+node
-  retrieval, `search_mode` knob.
-- **TYPHON's first test suite** (`tests/test_graphiti_cross_episode.py`, 17 tests:
-  session splitting, fact ordering, availability gating, strict-client wiring, dry-run
-  artifact shape). `pytest` config in `pyproject.toml`.
+  retrieval, and the `search_mode` + `node_text_mode` knobs (pure `_node_text` builder).
+- Real-LoCoMo importer (`locomo_importer` + CLI + `locomo_real`) and an eval aggregation
+  module (`typhon.eval.aggregate`).
+- **TYPHON's first test suite** (`tests/`, 33 tests: session splitting, fact ordering,
+  availability gating, strict-client wiring, node-text modes, dry-run artifact shape,
+  importer mapping, eval aggregation). `pytest` config in `pyproject.toml`.
 
 ## Caveats / next
 

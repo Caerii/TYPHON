@@ -152,3 +152,38 @@ def test_dry_run_emits_not_executed_artifact(tmp_path: Path):
 @pytest.mark.parametrize("baseline_id", ["graphiti_cross_episode"])
 def test_baseline_is_registered(baseline_id: str):
     assert any(b.id == baseline_id for b in BaselineRegistry.load().list_baselines())
+
+
+# --- node_text_mode (summary | current_edges | bitemporal) --------------------
+
+def test_node_text_summary_includes_summary_and_attrs():
+    text = g._node_text("API", "summary", summary="the public API", attributes={"rate_limit": "40 rpm"})
+    assert "API" in text and "the public API" in text and "rate_limit: 40 rpm" in text
+
+
+def test_node_text_current_edges_uses_current_facts():
+    assert (
+        g._node_text("public API", "current_edges", current_facts=["rate limit is 40 rpm"])
+        == "public API: rate limit is 40 rpm"
+    )
+
+
+def test_node_text_current_edges_falls_back_to_name():
+    assert g._node_text("Pixel", "current_edges", current_facts=[]) == "Pixel"
+
+
+def test_node_text_bitemporal_name_only_when_no_incident():
+    # Entity-name answers (Pixel/Northwind) resolve from the name alone.
+    assert g._node_text("Pixel", "bitemporal", current_facts=[], incident_count=0) == "Pixel"
+
+
+def test_node_text_bitemporal_drops_stale_only_node():
+    # A node with incident edges but none current (e.g. a replaced 'Postgres') is dropped.
+    assert g._node_text("Postgres", "bitemporal", current_facts=[], incident_count=2) is None
+
+
+def test_node_text_bitemporal_surfaces_current_value():
+    assert (
+        g._node_text("public API", "bitemporal", current_facts=["rate limit is 40"], incident_count=3)
+        == "public API: rate limit is 40"
+    )

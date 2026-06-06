@@ -41,6 +41,7 @@ try:  # pragma: no cover - optional dependency
 
     from graphiti_core import Graphiti
     from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
+    from graphiti_core.edges import EntityEdge
     from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
     from graphiti_core.llm_client.config import LLMConfig
     from graphiti_core.llm_client.errors import RateLimitError, RefusalError
@@ -61,6 +62,7 @@ except Exception as exc:  # noqa: BLE001 - any import failure means "unavailable
     OpenAIEmbedder = None  # type: ignore[assignment]
     OpenAIEmbedderConfig = None  # type: ignore[assignment]
     OpenAIRerankerClient = None  # type: ignore[assignment]
+    EntityEdge = None  # type: ignore[assignment]
     COMBINED_HYBRID_SEARCH_RRF = EDGE_HYBRID_SEARCH_RRF = None  # type: ignore[assignment]
     RateLimitError = RefusalError = Exception  # type: ignore[assignment,misc]
     _GRAPHITI_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
@@ -272,6 +274,7 @@ async def _ingest_and_search(
 ) -> list[dict[str, Any]]:
     assert Graphiti is not None and EpisodeType is not None  # guaranteed by _availability()
     graphiti = _build_graphiti(settings)
+    node_text_mode = str(settings.get("node_text_mode", "summary"))
     try:
         await graphiti.build_indices_and_constraints()
         # Stamp sessions with an increasing valid-time so the graph carries the
@@ -302,6 +305,26 @@ async def _ingest_and_search(
         results = await graphiti.search_(sample.question, config=config, group_ids=[group_id])
         edges = list(results.edges)
         nodes = list(getattr(results, "nodes", []))
+
+        # For node_text_mode="bitemporal": fetch each retrieved node's FULL incident
+        # edge set from the graph (not just the top-K) and keep only the current ones,
+        # so a value like "40 requests per minute" surfaces while the superseded "100"
+        # is excluded. Must run before the driver closes.
+        node_current_edges: dict[str, list[str]] = {}
+        node_incident_count: dict[str, int] = {}
+        if node_text_mode == "bitemporal":
+            for node in nodes:
+                uuid = getattr(node, "uuid", None)
+                if not uuid:
+                    continue
+                incident = await EntityEdge.get_by_node_uuid(graphiti.driver, uuid)
+                node_incident_count[uuid] = len(incident)
+                node_current_edges[uuid] = [
+                    edge.fact
+                    for edge in incident
+                    if getattr(edge, "invalid_at", None) is None
+                    and getattr(edge, "expired_at", None) is None
+                ]
     finally:
         await graphiti.close()
 
@@ -319,15 +342,7 @@ async def _ingest_and_search(
                 "current": invalid_at is None,
             }
         )
-    # Node retrieval, two modes (``node_text_mode``):
-    #   "summary" (default): name + regional summary + attributes — maximizes recall, but
-    #     the summary aggregates history (can mention a since-superseded value) and so can
-    #     reintroduce a stale leak on supersession questions.
-    #   "current_edges": name + the node's *current* incident edge facts only, dropping the
-    #     history-aggregating summary. Entity-name answers still resolve (the name is in the
-    #     text) and current-state answers stay clean — best-of-both for bi-temporal
-    #     correctness without losing identity recall.
-    node_text_mode = str(settings.get("node_text_mode", "summary"))
+    # Build retrieval text per retrieved node (see _node_text for the modes).
     incident_current: dict[str, list[str]] = {}
     if node_text_mode == "current_edges":
         for edge in edges:
@@ -337,33 +352,68 @@ async def _ingest_and_search(
                 if endpoint:
                     incident_current.setdefault(endpoint, []).append(edge.fact)
     for node in nodes:
-        name = (getattr(node, "name", "") or "").strip()
-        if node_text_mode == "current_edges":
-            edge_facts = incident_current.get(getattr(node, "uuid", None), [])
-            text = f"{name}: {' '.join(edge_facts)}".strip() if edge_facts else name
+        uuid = getattr(node, "uuid", None)
+        if node_text_mode == "bitemporal":
+            node_facts = node_current_edges.get(uuid, [])
+            incident_count = node_incident_count.get(uuid, 0)
         else:
-            summary = (getattr(node, "summary", "") or "").strip()
-            attributes = getattr(node, "attributes", {}) or {}
-            attr_text = "; ".join(
-                f"{key}: {value}" for key, value in attributes.items() if value not in (None, "", [], {})
-            )
-            text = f"{name} — {summary}" if (name and summary) else (summary or name)
-            if attr_text:
-                text = f"{text} ({attr_text})" if text else attr_text
-        text = text.strip()
+            node_facts = incident_current.get(uuid, [])
+            incident_count = len(node_facts)
+        text = _node_text(
+            getattr(node, "name", ""),
+            node_text_mode,
+            summary=getattr(node, "summary", ""),
+            attributes=getattr(node, "attributes", {}),
+            current_facts=node_facts,
+            incident_count=incident_count,
+        )
         if not text:
             continue
         facts.append(
             {
                 "fact": text,
                 "kind": "node",
-                "uuid": getattr(node, "uuid", None),
+                "uuid": uuid,
                 "valid_at": None,
                 "invalid_at": None,
                 "current": True,
             }
         )
     return facts
+
+
+def _node_text(
+    name: str,
+    mode: str,
+    *,
+    summary: str = "",
+    attributes: dict[str, Any] | None = None,
+    current_facts: list[str] | None = None,
+    incident_count: int = 0,
+) -> str | None:
+    """Build a retrieved node's text for ``node_text_mode`` — or None to drop the node.
+
+    - "summary" (default): name + regional summary + attributes (recall-max; the summary
+      aggregates history so it can carry a since-superseded value).
+    - "current_edges" / "bitemporal": name + current incident edge facts, dropping the
+      history-aggregating summary. In "bitemporal", a *stale-only* node — one that has
+      incident edges but none current (e.g. a replaced 'Postgres') — is dropped.
+    """
+    name = (name or "").strip()
+    if mode in ("current_edges", "bitemporal"):
+        node_facts = current_facts or []
+        if mode == "bitemporal" and not node_facts and incident_count > 0:
+            return None  # stale-only node
+        return (f"{name}: {' '.join(node_facts)}".strip() if node_facts else name) or None
+    summary = (summary or "").strip()
+    attributes = attributes or {}
+    attr_text = "; ".join(
+        f"{key}: {value}" for key, value in attributes.items() if value not in (None, "", [], {})
+    )
+    text = f"{name} — {summary}" if (name and summary) else (summary or name)
+    if attr_text:
+        text = f"{text} ({attr_text})" if text else attr_text
+    return text.strip() or None
 
 
 def _order_facts(facts: list[dict[str, Any]], settings: dict[str, Any]) -> list[dict[str, Any]]:
