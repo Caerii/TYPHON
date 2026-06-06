@@ -6,6 +6,7 @@ from pathlib import Path
 
 from typhon.baselines.base import BaselineSpec
 from typhon.baselines.gated_deltanet_fla import run_gated_deltanet_fla_baseline
+from typhon.baselines.graphiti_cross_episode import run_graphiti_cross_episode_baseline
 from typhon.baselines.registry import BaselineRegistry
 from typhon.benchmarks.base import BenchmarkSample, BenchmarkSpec
 from typhon.benchmarks.registry import BenchmarkRegistry
@@ -302,6 +303,18 @@ def run_baseline(
         if baseline.id == "gated_deltanet_fla":
             artifacts.extend(
                 run_gated_deltanet_fla_baseline(
+                    baseline=baseline,
+                    benchmark=spec,
+                    samples=samples,
+                    runtime_profile=runtime_profile,
+                    output_dir=output_dir,
+                    dry_run=dry_run,
+                )
+            )
+            continue
+        if baseline.id == "graphiti_cross_episode":
+            artifacts.extend(
+                run_graphiti_cross_episode_baseline(
                     baseline=baseline,
                     benchmark=spec,
                     samples=samples,

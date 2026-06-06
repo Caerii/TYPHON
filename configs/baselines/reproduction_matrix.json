@@ -8,6 +8,13 @@
       "notes": "Implemented as a heuristic local attention-style baseline artifact path."
     },
     {
+      "id": "graphiti_cross_episode",
+      "role": "cross_episode_symbolic_memory",
+      "status": "implemented",
+      "source": "https://github.com/getzep/graphiti",
+      "notes": "Long-term tier: bi-temporal knowledge graph. Ingests sessions, recalls facts across episodes; same extractive prediction path as attention_baseline so the comparison isolates retrieval. Optional dep (graph backend + extraction LLM); emits a not_executed artifact when unavailable."
+    },
+    {
       "id": "gated_deltanet",
       "role": "local_retention",
       "status": "pending",
