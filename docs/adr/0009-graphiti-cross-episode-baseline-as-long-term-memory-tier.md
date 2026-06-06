@@ -94,9 +94,11 @@ Conclusions:
    node-attribute retrieval were both required.
 2. **The honest tradeoff:** node summaries unlocked that recall but aggregate history in
    present tense, so combined search **reintroduces the stale leak** (0/3 → 3/3). Edges
-   are bi-temporally clean (0/3) but lossy. **Neither single `search_mode` wins both**;
-   `current_facts_only` + edges-first ordering mitigate but don't eliminate it (the
-   extractive top-2 still grabs a stale node-summary sentence).
+   are bi-temporally clean (0/3) but lossy. A `node_text_mode=current_edges` knob (name +
+   current incident edges, no summary) cuts the leak to **1/3** and keeps window_recall 5/5,
+   but loses value/attribute recall (0.85 → 0.37) and can't fix the case where the stale
+   value *is* an entity name (`Postgres`). **Entity-name and value facts want opposite
+   modes** — the true fix is bi-temporal node summaries.
 3. **Stability:** 3 trials, **std=0 on every headline metric** (window_recall 5/5,
    supersession leak 3/3 each trial) — deterministic at temp=0 once extraction is guided.
 4. Real LoCoMo is **wired** (`locomo_real` benchmark + importer + CLI). Next levers:
@@ -104,5 +106,6 @@ Conclusions:
    **shared-graph-per-conversation** (efficient graphiti on real LoCoMo).
 
 Foundations added: `StrictSchemaClient`, guided extraction, combined edge+node search
-(`search_mode` knob), and **TYPHON's first test suite** (`tests/`, 17 tests, `pytest`
-config in `pyproject.toml`).
+(`search_mode` + `node_text_mode` knobs), real-LoCoMo importer (`locomo_real`), an eval
+aggregation module, and **TYPHON's first test suite** (`tests/`, 27 tests, `pytest` config
+in `pyproject.toml`).

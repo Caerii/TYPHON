@@ -56,11 +56,20 @@ lowered to 40"; "Priya owns billing… moved away"), so combined search **reintr
 the stale leak** (0/3 → 3/3). Edges carry bi-temporal validity and are clean (0/3) but
 lossy. **Neither single mode wins both axes.**
 
-`_order_facts` ranks current edges before current nodes (edges are bi-temporally
-authoritative), but predict_answer's top-2 still selects the high-overlap stale sentence
-from a node summary. `search_mode` is configurable (`edges` | `combined`); default is
-`combined` (recall-max). The best-of-both — bi-temporal / current-only node summaries —
-is tracked as future work.
+Two knobs navigate this: `search_mode` (`edges` | `combined`, default `combined`) and
+`node_text_mode` (`summary` | `current_edges`, default `summary`). Measured:
+
+| `node_text_mode` | window_recall | superseded leak | supersession recall |
+|---|---|---|---|
+| `summary` (default, recall-max) | 5/5 | 3/3 | 0.85 |
+| `current_edges` | 5/5 | **1/3** | 0.37 |
+
+`current_edges` drops the history-aggregating summary (uses name + current incident edges):
+it keeps window_recall perfect and cuts the leak to 1/3, but loses value/attribute recall
+(those facts live in summaries, not names/edges), and the last leak is irreducible — the
+stale value *is* an entity name (`Postgres`). **Entity-name facts and value facts want
+opposite modes.** The true best-of-both — **bi-temporal node summaries** (re-summarize from
+current edges only) — is a Graphiti-internals change, tracked as future work.
 
 ## Foundations added this pass
 

@@ -319,18 +319,37 @@ async def _ingest_and_search(
                 "current": invalid_at is None,
             }
         )
-    # Node-attribute retrieval: surface the entity's name + regional summary +
-    # attributes. Nodes have no bi-temporal invalidation, so treat them as current.
+    # Node retrieval, two modes (``node_text_mode``):
+    #   "summary" (default): name + regional summary + attributes — maximizes recall, but
+    #     the summary aggregates history (can mention a since-superseded value) and so can
+    #     reintroduce a stale leak on supersession questions.
+    #   "current_edges": name + the node's *current* incident edge facts only, dropping the
+    #     history-aggregating summary. Entity-name answers still resolve (the name is in the
+    #     text) and current-state answers stay clean — best-of-both for bi-temporal
+    #     correctness without losing identity recall.
+    node_text_mode = str(settings.get("node_text_mode", "summary"))
+    incident_current: dict[str, list[str]] = {}
+    if node_text_mode == "current_edges":
+        for edge in edges:
+            if getattr(edge, "invalid_at", None) is not None:
+                continue  # current edges only
+            for endpoint in (getattr(edge, "source_node_uuid", None), getattr(edge, "target_node_uuid", None)):
+                if endpoint:
+                    incident_current.setdefault(endpoint, []).append(edge.fact)
     for node in nodes:
         name = (getattr(node, "name", "") or "").strip()
-        summary = (getattr(node, "summary", "") or "").strip()
-        attributes = getattr(node, "attributes", {}) or {}
-        attr_text = "; ".join(
-            f"{key}: {value}" for key, value in attributes.items() if value not in (None, "", [], {})
-        )
-        text = f"{name} — {summary}" if (name and summary) else (summary or name)
-        if attr_text:
-            text = f"{text} ({attr_text})" if text else attr_text
+        if node_text_mode == "current_edges":
+            edge_facts = incident_current.get(getattr(node, "uuid", None), [])
+            text = f"{name}: {' '.join(edge_facts)}".strip() if edge_facts else name
+        else:
+            summary = (getattr(node, "summary", "") or "").strip()
+            attributes = getattr(node, "attributes", {}) or {}
+            attr_text = "; ".join(
+                f"{key}: {value}" for key, value in attributes.items() if value not in (None, "", [], {})
+            )
+            text = f"{name} — {summary}" if (name and summary) else (summary or name)
+            if attr_text:
+                text = f"{text} ({attr_text})" if text else attr_text
         text = text.strip()
         if not text:
             continue
