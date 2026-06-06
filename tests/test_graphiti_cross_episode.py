@@ -1,0 +1,154 @@
+"""Unit tests for the graphiti_cross_episode baseline's pure logic.
+
+These exercise session splitting, fact ordering, availability gating, the strict
+schema client wiring, and the dry-run artifact shape — all without a graph backend
+or an LLM (dry_run / pure functions), so they run in CI with zero external deps.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from typhon.baselines import graphiti_cross_episode as g
+from typhon.baselines.local_exact import run_baseline
+from typhon.baselines.registry import BaselineRegistry
+from typhon.benchmarks.registry import BenchmarkRegistry
+
+
+# --- session splitting --------------------------------------------------------
+
+def test_split_sessions_session_markers_strip_prefix():
+    ctx = "Session 1: Alpha beta. Session 2: Gamma delta."
+    assert g._split_sessions(ctx, {}) == ["Alpha beta.", "Gamma delta."]
+
+
+def test_split_sessions_turn_markers():
+    ctx = "Turn 1: First thing. Turn 2: Second thing."
+    assert g._split_sessions(ctx, {}) == ["First thing.", "Second thing."]
+
+
+def test_split_sessions_double_newline_delimiter():
+    ctx = "Para one stands alone.\n\nPara two is separate."
+    assert g._split_sessions(ctx, {}) == ["Para one stands alone.", "Para two is separate."]
+
+
+def test_split_sessions_custom_regex_setting():
+    ctx = "a||b||c"
+    assert g._split_sessions(ctx, {"session_regex": r"\|\|"}) == ["a", "b", "c"]
+
+
+def test_split_sessions_single_block_no_markers():
+    ctx = "Just one sentence with no markers at all."
+    assert g._split_sessions(ctx, {}) == [ctx]
+
+
+def test_episodes_are_indexed_by_sample_id():
+    class _S:
+        sample_id = "smp"
+        context = "Session 1: one. Session 2: two."
+
+    episodes = g._episodes(_S(), {})
+    assert [name for name, _ in episodes] == ["smp-s000", "smp-s001"]
+    assert [body for _, body in episodes] == ["one.", "two."]
+
+
+# --- fact ordering (temporal preference + edge/node priority) ------------------
+
+def _facts():
+    return [
+        {"fact": "edge_sup", "kind": "edge", "current": False},
+        {"fact": "node_cur", "kind": "node", "current": True},
+        {"fact": "edge_cur", "kind": "edge", "current": True},
+    ]
+
+
+def test_order_facts_current_only_drops_superseded_edges_first():
+    ordered = g._order_facts(_facts(), {"current_facts_only": True})
+    assert [f["fact"] for f in ordered] == ["edge_cur", "node_cur"]
+
+
+def test_order_facts_prefer_current_orders_edges_nodes_superseded():
+    ordered = g._order_facts(_facts(), {"current_facts_only": False, "prefer_current": True})
+    assert [f["fact"] for f in ordered] == ["edge_cur", "node_cur", "edge_sup"]
+
+
+def test_order_facts_current_only_falls_back_when_nothing_current():
+    facts = [{"fact": "only_sup", "kind": "edge", "current": False}]
+    assert g._order_facts(facts, {"current_facts_only": True}) == facts
+
+
+def test_order_facts_empty():
+    assert g._order_facts([], {"current_facts_only": True}) == []
+
+
+# --- availability gating ------------------------------------------------------
+
+def test_availability_requires_graph_uri(monkeypatch):
+    monkeypatch.delenv("GRAPH_URI", raising=False)
+    monkeypatch.setenv("TOGETHER_API_KEY", "k")
+    ok, reason = g._availability({})
+    assert ok is False and "GRAPH_URI" in (reason or "")
+
+
+def test_availability_requires_llm_key(monkeypatch):
+    monkeypatch.setenv("GRAPH_URI", "bolt://localhost:7687")
+    monkeypatch.delenv("TOGETHER_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    ok, reason = g._availability({})
+    assert ok is False and "API key" in (reason or "")
+
+
+def test_availability_ok_when_both_present(monkeypatch):
+    monkeypatch.setenv("GRAPH_URI", "bolt://localhost:7687")
+    monkeypatch.setenv("TOGETHER_API_KEY", "k")
+    assert g._availability({}) == (True, None)
+
+
+# --- strict schema client + guided extraction wiring --------------------------
+
+def test_strict_schema_client_is_defined_and_subclasses_generic():
+    from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
+
+    assert g.StrictSchemaClient is not None
+    assert issubclass(g.StrictSchemaClient, OpenAIGenericClient)
+    assert "_generate_response" in vars(g.StrictSchemaClient)
+
+
+def test_guided_entity_types_present():
+    assert set(g.GUIDED_ENTITY_TYPES) == {"Value", "Role", "System"}
+    assert g.GUIDED_EXTRACTION_INSTRUCTIONS.strip()
+
+
+# --- dry-run artifact shape (no graph backend, no LLM) ------------------------
+
+def test_dry_run_emits_not_executed_artifact(tmp_path: Path):
+    baselines = BaselineRegistry.load()
+    benchmarks = BenchmarkRegistry.load()
+    artifacts = run_baseline(
+        baseline_registry=baselines,
+        benchmark_registry=benchmarks,
+        baseline_id="graphiti_cross_episode",
+        benchmark_id="locomo_window",
+        family=None,
+        output_dir=tmp_path,
+        dry_run=True,
+        sample_source="fixture",
+        sample_limit=None,
+        chunk_size_override=None,
+        local_window_tokens_override=None,
+    )
+    assert len(artifacts) == 1
+    art = artifacts[0]
+    assert art["status"] == "not_executed"
+    for key in ("baseline", "benchmark", "memory_state", "prediction", "limitations"):
+        assert key in art
+    ce = art["memory_state"]["cross_episode"]
+    assert ce["episode_count"] >= 1
+    assert ce["retrieved_fact_count"] == 0
+
+
+@pytest.mark.parametrize("baseline_id", ["graphiti_cross_episode"])
+def test_baseline_is_registered(baseline_id: str):
+    assert any(b.id == baseline_id for b in BaselineRegistry.load().list_baselines())
