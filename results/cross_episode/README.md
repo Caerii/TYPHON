@@ -74,9 +74,11 @@ is tracked as future work.
 
 ## Caveats / next
 
-- Synthetic probe sets (8 supersession + 5 window). `run_trials.sh` runs N fresh trials
-  for mean±std (extraction is stochastic).
-- Real LoCoMo (`locomo10.json`, 10 conv / ~1986 QA, real timestamps) fetched + scoped;
-  needs a **shared-graph-per-conversation** mode (ingest each conversation once).
+- Synthetic probe sets (8 supersession + 5 window), but **stable across 3 trials — std=0
+  on every headline metric** (window_recall 5/5 and supersession 8/8 non-empty each trial;
+  `trials_summary_2026-06-06.txt`). Deterministic at temp=0 once extraction is guided.
+- Real LoCoMo is now **wired** (`locomo_real` benchmark + `locomo_importer` + CLI; attention
+  runs, recall 0.0 on out-of-window answers). Efficient graphiti runs await
+  **shared-graph-per-conversation** (ingest each conversation once).
 - Best-of-both temporal precision + recall (bi-temporal node summaries).
 - Fresh per-sample graph + synthetic valid-times remain (baseline `limitations`).

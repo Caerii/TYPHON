@@ -97,9 +97,11 @@ Conclusions:
    are bi-temporally clean (0/3) but lossy. **Neither single `search_mode` wins both**;
    `current_facts_only` + edges-first ordering mitigate but don't eliminate it (the
    extractive top-2 still grabs a stale node-summary sentence).
-3. Next levers: **bi-temporal / current-only node summaries** (best-of-both);
-   shared-graph-per-conversation (prerequisite for real LoCoMo, `locomo10.json`
-   fetched); repeated trials for mean±std (`run_trials.sh`).
+3. **Stability:** 3 trials, **std=0 on every headline metric** (window_recall 5/5,
+   supersession leak 3/3 each trial) — deterministic at temp=0 once extraction is guided.
+4. Real LoCoMo is **wired** (`locomo_real` benchmark + importer + CLI). Next levers:
+   **bi-temporal / current-only node summaries** (best-of-both) and
+   **shared-graph-per-conversation** (efficient graphiti on real LoCoMo).
 
 Foundations added: `StrictSchemaClient`, guided extraction, combined edge+node search
 (`search_mode` knob), and **TYPHON's first test suite** (`tests/`, 17 tests, `pytest`
