@@ -187,3 +187,34 @@ def test_node_text_bitemporal_surfaces_current_value():
         g._node_text("public API", "bitemporal", current_facts=["rate limit is 40"], incident_count=3)
         == "public API: rate limit is 40"
     )
+
+
+# --- shared-graph grouping ----------------------------------------------------
+
+class _Sample:
+    def __init__(self, sample_id, metadata=None):
+        self.sample_id = sample_id
+        self.metadata = metadata or {}
+
+
+def test_group_samples_default_is_per_sample():
+    samples = [_Sample("a"), _Sample("b")]
+    groups = g._group_samples(samples, None)
+    assert [k for k, _ in groups] == ["a", "b"]
+    assert all(len(v) == 1 for _, v in groups)
+
+
+def test_group_samples_shared_key_groups_by_conversation():
+    samples = [
+        _Sample("a", {"conversation": "c1"}),
+        _Sample("b", {"conversation": "c1"}),
+        _Sample("c", {"conversation": "c2"}),
+    ]
+    groups = dict((k, [s.sample_id for s in v]) for k, v in g._group_samples(samples, "conversation"))
+    assert groups == {"c1": ["a", "b"], "c2": ["c"]}
+
+
+def test_group_samples_missing_key_falls_back_to_sample_id():
+    samples = [_Sample("a", {"conversation": "c1"}), _Sample("b", {})]
+    groups = dict((k, [s.sample_id for s in v]) for k, v in g._group_samples(samples, "conversation"))
+    assert groups == {"c1": ["a"], "b": ["b"]}

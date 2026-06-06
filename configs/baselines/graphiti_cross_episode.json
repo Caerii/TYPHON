@@ -26,6 +26,7 @@
     "guided_extraction": true,
     "search_mode": "combined",
     "node_text_mode": "summary",
+    "shared_graph_key": null,
     "llm_base_url": "https://api.together.xyz/v1",
     "llm_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     "small_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",

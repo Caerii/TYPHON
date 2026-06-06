@@ -265,68 +265,63 @@ def _build_graphiti(settings: dict[str, Any]) -> "Graphiti":
     )
 
 
-async def _ingest_and_search(
-    *,
-    sample: BenchmarkSample,
-    settings: dict[str, Any],
-    group_id: str,
-    num_results: int,
-) -> list[dict[str, Any]]:
-    assert Graphiti is not None and EpisodeType is not None  # guaranteed by _availability()
-    graphiti = _build_graphiti(settings)
-    node_text_mode = str(settings.get("node_text_mode", "summary"))
-    try:
-        await graphiti.build_indices_and_constraints()
-        # Stamp sessions with an increasing valid-time so the graph carries the
-        # episode order — later sessions can supersede earlier facts.
-        base_time = datetime.now(timezone.utc)
-        guided = bool(settings.get("guided_extraction", True))
-        entity_types = GUIDED_ENTITY_TYPES if guided else None
-        extraction_instructions = GUIDED_EXTRACTION_INSTRUCTIONS if guided else None
-        for index, (name, body) in enumerate(_episodes(sample, settings)):
-            await graphiti.add_episode(
-                name=name,
-                episode_body=body,
-                source=EpisodeType.text,
-                source_description=f"cross-episode · {sample.sample_id}",
-                reference_time=base_time + timedelta(minutes=index),
-                group_id=group_id,
-                entity_types=entity_types,
-                custom_extraction_instructions=extraction_instructions,
-            )
-        # Combined edge + node retrieval. Edges carry entity-entity facts with
-        # bi-temporal validity; nodes carry the name/summary/attributes where a
-        # scalar or attribute fact (e.g. a rate limit, a status) lives when it
-        # never became an edge between two entities. `search_mode="edges"` falls
-        # back to edge-only. Episodes/communities are intentionally ignored so this
-        # stays graph retrieval, not raw-text RAG over the sessions.
-        recipe = EDGE_HYBRID_SEARCH_RRF if str(settings.get("search_mode", "combined")) == "edges" else COMBINED_HYBRID_SEARCH_RRF
-        config = recipe.model_copy(update={"limit": num_results})
-        results = await graphiti.search_(sample.question, config=config, group_ids=[group_id])
-        edges = list(results.edges)
-        nodes = list(getattr(results, "nodes", []))
+async def _ingest_episodes(
+    graphiti: "Graphiti", sample: BenchmarkSample, settings: dict[str, Any], group_id: str
+) -> None:
+    """Ingest a sample's sessions as ordered episodes (increasing valid-time) into group_id."""
+    base_time = datetime.now(timezone.utc)
+    guided = bool(settings.get("guided_extraction", True))
+    entity_types = GUIDED_ENTITY_TYPES if guided else None
+    extraction_instructions = GUIDED_EXTRACTION_INSTRUCTIONS if guided else None
+    for index, (name, body) in enumerate(_episodes(sample, settings)):
+        await graphiti.add_episode(
+            name=name,
+            episode_body=body,
+            source=EpisodeType.text,
+            source_description=f"cross-episode · {sample.sample_id}",
+            reference_time=base_time + timedelta(minutes=index),
+            group_id=group_id,
+            entity_types=entity_types,
+            custom_extraction_instructions=extraction_instructions,
+        )
 
-        # For node_text_mode="bitemporal": fetch each retrieved node's FULL incident
-        # edge set from the graph (not just the top-K) and keep only the current ones,
-        # so a value like "40 requests per minute" surfaces while the superseded "100"
-        # is excluded. Must run before the driver closes.
-        node_current_edges: dict[str, list[str]] = {}
-        node_incident_count: dict[str, int] = {}
-        if node_text_mode == "bitemporal":
-            for node in nodes:
-                uuid = getattr(node, "uuid", None)
-                if not uuid:
-                    continue
-                incident = await EntityEdge.get_by_node_uuid(graphiti.driver, uuid)
-                node_incident_count[uuid] = len(incident)
-                node_current_edges[uuid] = [
-                    edge.fact
-                    for edge in incident
-                    if getattr(edge, "invalid_at", None) is None
-                    and getattr(edge, "expired_at", None) is None
-                ]
-    finally:
-        await graphiti.close()
+
+async def _search_facts(
+    graphiti: "Graphiti", question: str, settings: dict[str, Any], group_id: str, num_results: int
+) -> list[dict[str, Any]]:
+    """Retrieve facts for one question from group_id.
+
+    Combined edge + node retrieval: edges carry entity-entity facts with bi-temporal
+    validity; nodes carry the name/summary/attributes where a scalar or attribute fact
+    (e.g. a rate limit) lives when it never became an edge. `search_mode="edges"` falls
+    back to edge-only; node text follows `node_text_mode` (see _node_text).
+    Episodes/communities are ignored so this stays graph retrieval, not raw-text RAG.
+    """
+    node_text_mode = str(settings.get("node_text_mode", "summary"))
+    recipe = EDGE_HYBRID_SEARCH_RRF if str(settings.get("search_mode", "combined")) == "edges" else COMBINED_HYBRID_SEARCH_RRF
+    config = recipe.model_copy(update={"limit": num_results})
+    results = await graphiti.search_(question, config=config, group_ids=[group_id])
+    edges = list(results.edges)
+    nodes = list(getattr(results, "nodes", []))
+
+    # For node_text_mode="bitemporal": fetch each retrieved node's FULL incident edge set
+    # (not just the top-K) and keep only the current ones, so a value like "40 requests per
+    # minute" surfaces while the superseded "100" is excluded. Runs before the driver closes.
+    node_current_edges: dict[str, list[str]] = {}
+    node_incident_count: dict[str, int] = {}
+    if node_text_mode == "bitemporal":
+        for node in nodes:
+            uuid = getattr(node, "uuid", None)
+            if not uuid:
+                continue
+            incident = await EntityEdge.get_by_node_uuid(graphiti.driver, uuid)
+            node_incident_count[uuid] = len(incident)
+            node_current_edges[uuid] = [
+                edge.fact
+                for edge in incident
+                if getattr(edge, "invalid_at", None) is None
+                and getattr(edge, "expired_at", None) is None
+            ]
 
     facts: list[dict[str, Any]] = []
     for edge in edges:
@@ -342,7 +337,6 @@ async def _ingest_and_search(
                 "current": invalid_at is None,
             }
         )
-    # Build retrieval text per retrieved node (see _node_text for the modes).
     incident_current: dict[str, list[str]] = {}
     if node_text_mode == "current_edges":
         for edge in edges:
@@ -380,6 +374,55 @@ async def _ingest_and_search(
             }
         )
     return facts
+
+
+async def _run_one_graph(
+    samples: list[BenchmarkSample], settings: dict[str, Any], group_id: str, num_results: int
+) -> dict[str, list[dict[str, Any]]]:
+    """Build one graph, ingest the (shared) context once, answer every sample against it.
+
+    Per-sample mode passes a single sample; shared-graph mode passes all the QA of one
+    conversation (which share the same context), so the conversation is ingested once and
+    every question is answered against that one graph — instead of re-ingesting per QA.
+    """
+    assert Graphiti is not None and EpisodeType is not None  # guaranteed by _availability()
+    graphiti = _build_graphiti(settings)
+    out: dict[str, list[dict[str, Any]]] = {}
+    try:
+        await graphiti.build_indices_and_constraints()
+        await _ingest_episodes(graphiti, samples[0], settings, group_id)
+        for sample in samples:
+            out[sample.sample_id] = await _search_facts(
+                graphiti, sample.question, settings, group_id, num_results
+            )
+    finally:
+        await graphiti.close()
+    return out
+
+
+def _group_samples(
+    samples: list[BenchmarkSample], shared_key: str | None
+) -> list[tuple[str, list[BenchmarkSample]]]:
+    """Group samples for graph reuse, preserving order.
+
+    With a ``shared_key`` (e.g. "conversation"), samples sharing that metadata value reuse
+    one graph (ingested once). Samples lacking the key — and the default ``shared_key=None``
+    — get their own per-sample graph, which reproduces the original behavior exactly.
+    """
+    groups: dict[str, list[BenchmarkSample]] = {}
+    order: list[str] = []
+    for sample in samples:
+        key = None
+        if shared_key:
+            value = (sample.metadata or {}).get(shared_key)
+            key = str(value) if value is not None else None
+        if not key:
+            key = sample.sample_id
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(sample)
+    return [(key, groups[key]) for key in order]
 
 
 def _node_text(
@@ -474,28 +517,41 @@ def run_graphiti_cross_episode_baseline(
     if not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    for sample in samples:
-        group_id = f"{benchmark.id}__{sample.sample_id}"
-        facts: list[dict[str, Any]] = []
-        status = "ok"
-        error: str | None = None
+    # Resolve facts per sample, reusing one graph per group. ``shared_graph_key`` (env
+    # GRAPHITI_SHARED_GRAPH_KEY or settings) groups a conversation's QA so the conversation
+    # is ingested once; the default (no key) is one graph per sample (original behavior).
+    shared_key = os.environ.get("GRAPHITI_SHARED_GRAPH_KEY") or settings.get("shared_graph_key")
+    facts_by_sample: dict[str, list[dict[str, Any]]] = {}
+    errors_by_sample: dict[str, str] = {}
+    group_by_sample: dict[str, str] = {}
+    for group_key, group_samples in _group_samples(samples, str(shared_key) if shared_key else None):
+        neo4j_group = f"{benchmark.id}__{group_key}"
+        for grouped in group_samples:
+            group_by_sample[grouped.sample_id] = neo4j_group
+        if not can_run:
+            continue
+        try:
+            facts_by_sample.update(
+                asyncio.run(_run_one_graph(group_samples, settings, neo4j_group, num_results))
+            )
+        except Exception as exc:  # noqa: BLE001 - record the failure per sample in the artifact
+            for grouped in group_samples:
+                errors_by_sample[grouped.sample_id] = f"{type(exc).__name__}: {exc}"
 
-        if can_run:
-            try:
-                facts = asyncio.run(
-                    _ingest_and_search(
-                        sample=sample,
-                        settings=settings,
-                        group_id=group_id,
-                        num_results=num_results,
-                    )
-                )
-            except Exception as exc:  # noqa: BLE001 - record the failure in the artifact
-                status = "error"
-                error = f"{type(exc).__name__}: {exc}"
-        else:
+    for sample in samples:
+        group_id = group_by_sample.get(sample.sample_id, f"{benchmark.id}__{sample.sample_id}")
+        if not can_run:
+            facts = []
             status = "not_executed"
             error = "dry-run" if dry_run else unavailable_reason
+        elif sample.sample_id in errors_by_sample:
+            facts = []
+            status = "error"
+            error = errors_by_sample[sample.sample_id]
+        else:
+            facts = facts_by_sample.get(sample.sample_id, [])
+            status = "ok"
+            error = None
 
         ordered_facts = _order_facts(facts, settings)
         retrieval_texts = [str(item["fact"]) for item in ordered_facts]
