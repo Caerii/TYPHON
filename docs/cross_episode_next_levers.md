@@ -57,6 +57,13 @@ Attribute-extraction cost at scale.
 
 ## Lever 2 — Session chunking for long episodes (real-LoCoMo extraction)
 
+**✅ Implemented + validated** (`_chunk_text` + `max_episode_chars`, default 2000; 5 tests).
+On real LoCoMo (conv-26, shared-graph) it **eliminated the extraction overflow** — 0
+length-limit errors (vs many before) — and lifted recall from **all-zero → 2/6 partial**
+(`locomo_real_chunked_2026-06-06.json`). Honest read: it's the necessary *unblocker*;
+real-LoCoMo recall stays low because of extraction *quality* + multi-hop QA hardness (which
+Lever 1 and richer retrieval attack), not overflow.
+
 **Problem.** Real LoCoMo sessions are large multi-turn dialogues; extraction overflows the
 16K completion budget → length-limit → retries → dropped edges → **recall 0** on `conv-26`
 (run `bovh7xvbd`). The synthetic probes don't hit this because their sessions are short.

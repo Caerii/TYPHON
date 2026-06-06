@@ -29,7 +29,7 @@ from .extraction import GUIDED_ENTITY_TYPES, GUIDED_EXTRACTION_INSTRUCTIONS
 from .facts import _node_text, _order_facts
 from .graph import _availability, _build_graphiti, _group_samples
 from .runner import run_graphiti_cross_episode_baseline
-from .sessions import _episodes, _split_sessions
+from .sessions import _chunk_text, _episodes, _split_sessions
 
 __all__ = [
     "run_graphiti_cross_episode_baseline",
@@ -40,6 +40,7 @@ __all__ = [
     # Re-exported for tests / introspection (the package's internal helpers).
     "_split_sessions",
     "_episodes",
+    "_chunk_text",
     "_node_text",
     "_order_facts",
     "_build_graphiti",

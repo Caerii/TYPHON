@@ -16,6 +16,7 @@
   "settings": {
     "session_delimiter": "\n\n",
     "session_regex": null,
+    "max_episode_chars": 2000,
     "graph_uri_env": "GRAPH_URI",
     "graph_user_env": "GRAPH_USER",
     "graph_password_env": "GRAPH_PASSWORD",

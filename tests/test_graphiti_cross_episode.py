@@ -218,3 +218,45 @@ def test_group_samples_missing_key_falls_back_to_sample_id():
     samples = [_Sample("a", {"conversation": "c1"}), _Sample("b", {})]
     groups = dict((k, [s.sample_id for s in v]) for k, v in g._group_samples(samples, "conversation"))
     assert groups == {"c1": ["a"], "b": ["b"]}
+
+
+# --- session chunking (Lever 2) -----------------------------------------------
+
+def test_chunk_text_disabled_or_short_returns_single():
+    assert g._chunk_text("a. b. c.", 0) == ["a. b. c."]
+    assert g._chunk_text("short", 100) == ["short"]
+    assert g._chunk_text("   ", 10) == []
+
+
+def test_chunk_text_packs_sentences_under_budget_preserving_words():
+    text = "Alpha alpha. Beta beta. Gamma gamma."
+    chunks = g._chunk_text(text, 14)
+    assert len(chunks) >= 2
+    assert all(len(c) <= 14 for c in chunks)
+    assert set(" ".join(chunks).split()) == set(text.split())  # no content lost
+
+
+def test_chunk_text_hard_splits_oversized_sentence():
+    chunks = g._chunk_text("x" * 50, 20)
+    assert all(len(c) <= 20 for c in chunks)
+    assert "".join(chunks) == "x" * 50
+
+
+class _LongSample:
+    sample_id = "smp"
+    context = "Session 1: " + "Aaaa bbbb cccc. " * 20  # one long session
+
+
+def test_episodes_chunks_long_session_with_budget():
+    eps = g._episodes(_LongSample(), {"max_episode_chars": 60})
+    assert len(eps) > 1
+    assert all(name.startswith("smp-s000-c") for name, _ in eps)
+    assert all(len(body) <= 60 for _, body in eps)
+
+
+def test_episodes_unchanged_when_chunking_disabled():
+    class _S:
+        sample_id = "smp"
+        context = "Session 1: one. Session 2: two."
+
+    assert [name for name, _ in g._episodes(_S(), {})] == ["smp-s000", "smp-s001"]
