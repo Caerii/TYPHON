@@ -132,12 +132,14 @@ async def _search_facts(
     edges = list(results.edges)
     nodes = list(getattr(results, "nodes", []))
 
-    # node_text_mode="bitemporal": fetch each node's FULL incident edge set (not just the
-    # top-K) and keep only current ones, so a value like "40 requests per minute" surfaces
-    # while the superseded "100" is excluded. Runs before the driver closes.
+    # "bitemporal" and "attributes" both need each node's FULL incident edge set (not just
+    # the top-K) so currency is judged over all of a node's relations: keep only current
+    # edges (a value like "40 rpm" surfaces while the superseded "100" is excluded) and
+    # know whether a node is stale-only (has edges, none current) so it can be dropped.
+    # Runs before the driver closes.
     node_current_edges: dict[str, list[str]] = {}
     node_incident_count: dict[str, int] = {}
-    if node_text_mode == "bitemporal":
+    if node_text_mode in ("bitemporal", "attributes"):
         for node in nodes:
             uuid = getattr(node, "uuid", None)
             if not uuid:
@@ -175,7 +177,7 @@ async def _search_facts(
                     incident_current.setdefault(endpoint, []).append(edge.fact)
     for node in nodes:
         uuid = getattr(node, "uuid", None)
-        if node_text_mode == "bitemporal":
+        if node_text_mode in ("bitemporal", "attributes"):
             node_facts = node_current_edges.get(uuid, [])
             incident_count = node_incident_count.get(uuid, 0)
         else:
