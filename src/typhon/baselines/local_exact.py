@@ -312,7 +312,9 @@ def run_baseline(
                 )
             )
             continue
-        if baseline.id == "graphiti_cross_episode":
+        if baseline.id.startswith("graphiti_cross_episode"):
+            # Dispatcher for graphiti cross-episode variants (rrf, cross_encoder, mmr, etc).
+            # The specific variant is determined by settings['search_variant'].
             artifacts.extend(
                 run_graphiti_cross_episode_baseline(
                     baseline=baseline,

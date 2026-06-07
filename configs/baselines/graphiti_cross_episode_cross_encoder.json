@@ -1,9 +1,9 @@
 {
-  "id": "graphiti_cross_episode",
-  "name": "Graphiti Cross-Episode Memory",
-  "description": "Long-term symbolic tier. Ingests the sample's sessions as episodes into a bi-temporal knowledge graph (Graphiti), then answers from facts retrieved across episodes. Uses the same extractive prediction path as attention_baseline, so the comparison isolates retrieval (temporal graph vs local window). Requires a graph backend (Neo4j) and an extraction LLM; emits a not_executed artifact when unavailable.",
+  "id": "graphiti_cross_episode_cross_encoder",
+  "name": "Graphiti Cross-Episode Memory (Cross-Encoder Reranker)",
+  "description": "Tier 2, Phase 1: Enable Graphiti's cross-encoder reranker + BFS multi-hop search. Same as graphiti_cross_episode but with search_variant='cross_encoder', which adds breadth-first search (BFS) to the edge and node search methods and replaces RRF with a learned cross-encoder reranker. Expected improvement: +5-10% J-score on multi-hop questions.",
   "type": "cross_episode_symbolic_memory",
-  "retrieval_strategy": "temporal_graph_hybrid_search",
+  "retrieval_strategy": "temporal_graph_cross_encoder_reranker",
   "uses_runtime_profile": true,
   "supports_families": [
     "conversational_memory",
@@ -26,7 +26,7 @@
     "current_facts_only": true,
     "guided_extraction": true,
     "search_mode": "combined",
-    "search_variant": "rrf",
+    "search_variant": "cross_encoder",
     "node_text_mode": "attributes",
     "shared_graph_key": null,
     "llm_base_url": "https://api.together.xyz/v1",

@@ -15,13 +15,22 @@ from typing import Any
 from typhon.benchmarks.base import BenchmarkSample
 
 from ._deps import (
+    COMBINED_HYBRID_SEARCH_CROSS_ENCODER,
+    COMBINED_HYBRID_SEARCH_MMR,
     COMBINED_HYBRID_SEARCH_RRF,
+    EDGE_HYBRID_SEARCH_CROSS_ENCODER,
+    EDGE_HYBRID_SEARCH_MMR,
+    EDGE_HYBRID_SEARCH_NODE_DISTANCE,
     EDGE_HYBRID_SEARCH_RRF,
     EntityEdge,
     EpisodeType,
     Graphiti,
     IMPORT_ERROR,
     LLMConfig,
+    NODE_HYBRID_SEARCH_CROSS_ENCODER,
+    NODE_HYBRID_SEARCH_MMR,
+    NODE_HYBRID_SEARCH_NODE_DISTANCE,
+    NODE_HYBRID_SEARCH_RRF,
     OpenAIEmbedder,
     OpenAIEmbedderConfig,
     OpenAIRerankerClient,
@@ -114,6 +123,47 @@ async def _ingest_episodes(
         )
 
 
+def _resolve_search_recipe(search_mode: str, search_variant: str) -> Any:
+    """Resolve the search recipe based on mode (edges vs combined) and variant (RRF, cross-encoder, etc).
+
+    Variants (search_variant):
+    - "rrf" (default): reciprocal rank fusion, fast baseline
+    - "cross_encoder": cross-encoder reranker + BFS multi-hop (Tier 2 Phase 1)
+    - "mmr": maximum marginal relevance
+    - "node_distance": BFS node_distance reranker (Tier 2 Phase 2, edges-only)
+
+    search_mode:
+    - "combined" (default): edges + nodes
+    - "edges": edges only
+    - "nodes": nodes only
+    """
+    if search_mode == "edges":
+        if search_variant == "cross_encoder":
+            return EDGE_HYBRID_SEARCH_CROSS_ENCODER
+        elif search_variant == "mmr":
+            return EDGE_HYBRID_SEARCH_MMR
+        elif search_variant == "node_distance":
+            return EDGE_HYBRID_SEARCH_NODE_DISTANCE
+        else:  # rrf or default
+            return EDGE_HYBRID_SEARCH_RRF
+    elif search_mode == "nodes":
+        if search_variant == "cross_encoder":
+            return NODE_HYBRID_SEARCH_CROSS_ENCODER
+        elif search_variant == "mmr":
+            return NODE_HYBRID_SEARCH_MMR
+        elif search_variant == "node_distance":
+            return NODE_HYBRID_SEARCH_NODE_DISTANCE
+        else:  # rrf or default
+            return NODE_HYBRID_SEARCH_RRF
+    else:  # combined or default
+        if search_variant == "cross_encoder":
+            return COMBINED_HYBRID_SEARCH_CROSS_ENCODER
+        elif search_variant == "mmr":
+            return COMBINED_HYBRID_SEARCH_MMR
+        else:  # rrf or default
+            return COMBINED_HYBRID_SEARCH_RRF
+
+
 async def _search_facts(
     graphiti: Any, question: str, settings: dict[str, Any], group_id: str, num_results: int
 ) -> list[dict[str, Any]]:
@@ -126,7 +176,9 @@ async def _search_facts(
     Episodes/communities are ignored so this stays graph retrieval, not raw-text RAG.
     """
     node_text_mode = str(settings.get("node_text_mode", "summary"))
-    recipe = EDGE_HYBRID_SEARCH_RRF if str(settings.get("search_mode", "combined")) == "edges" else COMBINED_HYBRID_SEARCH_RRF
+    search_mode = str(settings.get("search_mode", "combined"))
+    search_variant = str(settings.get("search_variant", "rrf"))
+    recipe = _resolve_search_recipe(search_mode, search_variant)
     config = recipe.model_copy(update={"limit": num_results})
     results = await graphiti.search_(question, config=config, group_ids=[group_id])
     edges = list(results.edges)

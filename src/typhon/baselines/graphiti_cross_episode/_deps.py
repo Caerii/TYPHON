@@ -24,8 +24,17 @@ try:  # pragma: no cover - optional dependency
     from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
     from graphiti_core.nodes import EpisodeType
     from graphiti_core.search.search_config_recipes import (
+        COMBINED_HYBRID_SEARCH_CROSS_ENCODER,
+        COMBINED_HYBRID_SEARCH_MMR,
         COMBINED_HYBRID_SEARCH_RRF,
+        EDGE_HYBRID_SEARCH_CROSS_ENCODER,
+        EDGE_HYBRID_SEARCH_MMR,
+        EDGE_HYBRID_SEARCH_NODE_DISTANCE,
         EDGE_HYBRID_SEARCH_RRF,
+        NODE_HYBRID_SEARCH_CROSS_ENCODER,
+        NODE_HYBRID_SEARCH_MMR,
+        NODE_HYBRID_SEARCH_NODE_DISTANCE,
+        NODE_HYBRID_SEARCH_RRF,
     )
 
     GRAPHITI_AVAILABLE = True
@@ -40,7 +49,9 @@ except Exception as exc:  # noqa: BLE001 - any import failure means "unavailable
     OpenAIEmbedder = None  # type: ignore[assignment]
     OpenAIEmbedderConfig = None  # type: ignore[assignment]
     OpenAIRerankerClient = None  # type: ignore[assignment]
-    COMBINED_HYBRID_SEARCH_RRF = EDGE_HYBRID_SEARCH_RRF = None  # type: ignore[assignment]
+    COMBINED_HYBRID_SEARCH_RRF = COMBINED_HYBRID_SEARCH_CROSS_ENCODER = COMBINED_HYBRID_SEARCH_MMR = None  # type: ignore[assignment]
+    EDGE_HYBRID_SEARCH_RRF = EDGE_HYBRID_SEARCH_CROSS_ENCODER = EDGE_HYBRID_SEARCH_MMR = EDGE_HYBRID_SEARCH_NODE_DISTANCE = None  # type: ignore[assignment]
+    NODE_HYBRID_SEARCH_RRF = NODE_HYBRID_SEARCH_CROSS_ENCODER = NODE_HYBRID_SEARCH_MMR = NODE_HYBRID_SEARCH_NODE_DISTANCE = None  # type: ignore[assignment]
     RateLimitError = RefusalError = Exception  # type: ignore[assignment,misc]
     GRAPHITI_AVAILABLE = False
     IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
@@ -61,5 +72,14 @@ __all__ = [
     "RateLimitError",
     "RefusalError",
     "COMBINED_HYBRID_SEARCH_RRF",
+    "COMBINED_HYBRID_SEARCH_CROSS_ENCODER",
+    "COMBINED_HYBRID_SEARCH_MMR",
     "EDGE_HYBRID_SEARCH_RRF",
+    "EDGE_HYBRID_SEARCH_CROSS_ENCODER",
+    "EDGE_HYBRID_SEARCH_MMR",
+    "EDGE_HYBRID_SEARCH_NODE_DISTANCE",
+    "NODE_HYBRID_SEARCH_RRF",
+    "NODE_HYBRID_SEARCH_CROSS_ENCODER",
+    "NODE_HYBRID_SEARCH_MMR",
+    "NODE_HYBRID_SEARCH_NODE_DISTANCE",
 ]
