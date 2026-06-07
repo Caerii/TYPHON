@@ -28,6 +28,34 @@ from .graph import _availability, _group_samples, _run_one_graph
 from .sessions import _episodes
 
 
+def _cost_block(
+    group_id: str,
+    settings: dict[str, Any],
+    usage: dict[str, int],
+    episode_count: int,
+    price_per_1m: float,
+) -> dict[str, Any]:
+    """Summarize a group's extraction-LLM usage + a $ estimate (the cost behind the recall).
+
+    Scope is ``per_group_ingestion``: in shared-graph mode the same block appears on every
+    sample of a conversation (one ingestion amortized across its QA), so aggregate cost by
+    distinct ``group_id`` — not by summing samples — to avoid double counting.
+    """
+    total = int(usage.get("total_tokens", 0))
+    return {
+        "scope": "per_group_ingestion",
+        "group_id": group_id,
+        "llm_model": settings.get("llm_model"),
+        "llm_calls": int(usage.get("llm_calls", 0)),
+        "prompt_tokens": int(usage.get("prompt_tokens", 0)),
+        "completion_tokens": int(usage.get("completion_tokens", 0)),
+        "total_tokens": total,
+        "tokens_per_episode": round(total / episode_count) if total and episode_count else 0,
+        "usd_estimate": round(total / 1_000_000 * price_per_1m, 6),
+        "price_per_1m_tokens": price_per_1m,
+    }
+
+
 def run_graphiti_cross_episode_baseline(
     *,
     baseline: BaselineSpec,
@@ -39,6 +67,9 @@ def run_graphiti_cross_episode_baseline(
 ) -> list[dict[str, Any]]:
     settings = baseline.settings
     num_results = int(settings.get("num_results", baseline.max_chunks_to_retrieve or 8))
+    # Blended $/1M tokens for the extraction LLM (Together Llama-3.3-70B-Turbo default);
+    # override per backend via settings to price the cost behind the recall lift.
+    price_per_1m = float(settings.get("llm_price_per_1m_tokens", 0.88))
     available, unavailable_reason = _availability(settings)
     can_run = available and not dry_run
 
@@ -53,6 +84,7 @@ def run_graphiti_cross_episode_baseline(
     facts_by_sample: dict[str, list[dict[str, Any]]] = {}
     errors_by_sample: dict[str, str] = {}
     group_by_sample: dict[str, str] = {}
+    usage_by_group: dict[str, dict[str, int]] = {}
     for group_key, group_samples in _group_samples(samples, str(shared_key) if shared_key else None):
         neo4j_group = f"{benchmark.id}__{group_key}"
         for grouped in group_samples:
@@ -60,9 +92,11 @@ def run_graphiti_cross_episode_baseline(
         if not can_run:
             continue
         try:
-            facts_by_sample.update(
-                asyncio.run(_run_one_graph(group_samples, settings, neo4j_group, num_results))
+            group_facts, group_usage = asyncio.run(
+                _run_one_graph(group_samples, settings, neo4j_group, num_results)
             )
+            facts_by_sample.update(group_facts)
+            usage_by_group[neo4j_group] = group_usage
         except Exception as exc:  # noqa: BLE001 - record the failure per sample in the artifact
             for grouped in group_samples:
                 errors_by_sample[grouped.sample_id] = f"{type(exc).__name__}: {exc}"
@@ -93,6 +127,9 @@ def run_graphiti_cross_episode_baseline(
         )
 
         episodes = _episodes(sample, settings)
+        cost = _cost_block(
+            group_id, settings, usage_by_group.get(group_id, {}), len(episodes), price_per_1m
+        )
         artifact: dict[str, Any] = {
             "generated_at": datetime.now(UTC).isoformat(),
             "status": status,
@@ -131,6 +168,7 @@ def run_graphiti_cross_episode_baseline(
             },
             "retrieval_preview": {"cross_episode": retrieval_texts},
             "prediction": prediction,
+            "cost": cost,
             "limitations": [
                 "Graphs are keyed per group (shared_graph_key reuses one graph across a "
                 "conversation's QA; default is one graph per sample).",
@@ -140,11 +178,14 @@ def run_graphiti_cross_episode_baseline(
                 "sessions can exceed the extraction token budget.",
             ],
             "budget_ledger": BudgetLedger(
-                proxy_token_ops=None,
+                proxy_token_ops=cost["total_tokens"] or None,
                 active_memory_units=len(facts),
                 notes=[
                     f"Runtime profile: {runtime_profile.profile_id}",
                     "Cross-episode symbolic memory via Graphiti (bi-temporal knowledge graph).",
+                    f"Extraction LLM: {cost['llm_calls']} calls, {cost['total_tokens']} tokens "
+                    f"(~${cost['usd_estimate']}, {cost['tokens_per_episode']} tok/episode) "
+                    "[per-group ingestion]",
                     f"Status: {status}" + (f" ({error})" if error else ""),
                 ],
             ).to_dict(),

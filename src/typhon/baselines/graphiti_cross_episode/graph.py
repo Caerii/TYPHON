@@ -208,16 +208,21 @@ async def _search_facts(
 
 async def _run_one_graph(
     samples: list[BenchmarkSample], settings: dict[str, Any], group_id: str, num_results: int
-) -> dict[str, list[dict[str, Any]]]:
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
     """Build one graph, ingest the (shared) context once, answer every sample against it.
 
     Per-sample mode passes a single sample; shared-graph mode passes all the QA of one
     conversation (which share the same context), so the conversation is ingested once and
     every question is answered against that one graph — instead of re-ingesting per QA.
+
+    Returns ``(facts_by_sample, usage)`` where ``usage`` is this graph's accumulated
+    extraction-LLM token usage (the cost behind the recall). Usage is per-*group*: in
+    shared-graph mode it is the one-time ingestion cost amortized across the group's QA.
     """
     assert Graphiti is not None  # guaranteed by _availability()
     graphiti = _build_graphiti(settings)
     out: dict[str, list[dict[str, Any]]] = {}
+    usage: dict[str, int] = {}
     try:
         await graphiti.build_indices_and_constraints()
         await _ingest_episodes(graphiti, samples[0], settings, group_id)
@@ -225,9 +230,10 @@ async def _run_one_graph(
             out[sample.sample_id] = await _search_facts(
                 graphiti, sample.question, settings, group_id, num_results
             )
+        usage = dict(getattr(graphiti.llm_client, "usage", {}) or {})
     finally:
         await graphiti.close()
-    return out
+    return out, usage
 
 
 def _group_samples(

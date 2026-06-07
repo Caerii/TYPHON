@@ -25,7 +25,34 @@ logger = logging.getLogger(__name__)
 if OpenAIGenericClient is not None:
 
     class StrictSchemaClient(OpenAIGenericClient):  # type: ignore[misc,valid-type]
-        """OpenAIGenericClient that enforces the response schema via strict structured outputs."""
+        """OpenAIGenericClient that enforces the response schema via strict structured outputs.
+
+        Also accumulates token usage (``self.usage``) across every call so a run can report
+        the extraction cost behind the recall lift — the "Y" in "X% lift at Y cost". Usage is
+        a plain dict (llm_calls / prompt_tokens / completion_tokens / total_tokens) read off
+        the OpenAI-compatible response; the embedder and reranker are separate clients and are
+        not counted here (extraction dominates LLM cost, and the RRF search recipe does not
+        invoke the reranker).
+        """
+
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            self.usage: dict[str, int] = {
+                "llm_calls": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+            }
+
+        def _record_usage(self, completion: Any) -> None:
+            """Accumulate token counts from an OpenAI-compatible response's ``usage`` block."""
+            usage = getattr(completion, "usage", None)
+            self.usage["llm_calls"] += 1
+            if usage is None:
+                return
+            self.usage["prompt_tokens"] += int(getattr(usage, "prompt_tokens", 0) or 0)
+            self.usage["completion_tokens"] += int(getattr(usage, "completion_tokens", 0) or 0)
+            self.usage["total_tokens"] += int(getattr(usage, "total_tokens", 0) or 0)
 
         async def _generate_response(  # type: ignore[override]
             self,
@@ -48,6 +75,7 @@ if OpenAIGenericClient is not None:
                         max_tokens=self.max_tokens,
                         response_format=response_model,
                     )
+                    self._record_usage(completion)
                     parsed_message = completion.choices[0].message
                     refusal = getattr(parsed_message, "refusal", None)
                     if refusal:
@@ -63,6 +91,7 @@ if OpenAIGenericClient is not None:
                     max_tokens=self.max_tokens,
                     response_format={"type": "json_object"},
                 )
+                self._record_usage(response)
                 return json.loads(response.choices[0].message.content or "{}")
             except openai.RateLimitError as exc:  # type: ignore[union-attr]
                 raise RateLimitError from exc

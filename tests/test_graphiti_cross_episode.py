@@ -150,11 +150,14 @@ def test_dry_run_emits_not_executed_artifact(tmp_path: Path):
     assert len(artifacts) == 1
     art = artifacts[0]
     assert art["status"] == "not_executed"
-    for key in ("baseline", "benchmark", "memory_state", "prediction", "limitations"):
+    for key in ("baseline", "benchmark", "memory_state", "prediction", "cost", "limitations"):
         assert key in art
     ce = art["memory_state"]["cross_episode"]
     assert ce["episode_count"] >= 1
     assert ce["retrieved_fact_count"] == 0
+    # Cost block is present and zeroed on a dry run (no LLM calls were made).
+    assert art["cost"]["total_tokens"] == 0
+    assert art["cost"]["usd_estimate"] == 0.0
 
 
 @pytest.mark.parametrize("baseline_id", ["graphiti_cross_episode"])
@@ -317,3 +320,27 @@ def test_episodes_unchanged_when_chunking_disabled():
         context = "Session 1: one. Session 2: two."
 
     assert [name for name, _ in g._episodes(_S(), {})] == ["smp-s000", "smp-s001"]
+
+
+# --- cost accounting (extraction-LLM usage behind the recall) ------------------
+
+def test_cost_block_computes_usd_and_per_episode():
+    from typhon.baselines.graphiti_cross_episode.runner import _cost_block
+
+    usage = {"llm_calls": 4, "prompt_tokens": 8000, "completion_tokens": 2000, "total_tokens": 10000}
+    block = _cost_block("locomo__c", {"llm_model": "m"}, usage, episode_count=5, price_per_1m=0.88)
+    assert block["scope"] == "per_group_ingestion"
+    assert block["group_id"] == "locomo__c"
+    assert block["total_tokens"] == 10000
+    assert block["llm_calls"] == 4
+    assert block["tokens_per_episode"] == 2000
+    assert block["usd_estimate"] == round(10000 / 1_000_000 * 0.88, 6)
+
+
+def test_cost_block_handles_empty_usage_without_dividing_by_zero():
+    from typhon.baselines.graphiti_cross_episode.runner import _cost_block
+
+    block = _cost_block("g", {}, {}, episode_count=0, price_per_1m=0.88)
+    assert block["total_tokens"] == 0
+    assert block["tokens_per_episode"] == 0
+    assert block["usd_estimate"] == 0.0
