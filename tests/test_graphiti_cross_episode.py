@@ -117,8 +117,16 @@ def test_strict_schema_client_is_defined_and_subclasses_generic():
 
 
 def test_guided_entity_types_present():
-    assert set(g.GUIDED_ENTITY_TYPES) == {"Value", "Role", "System"}
+    assert set(g.GUIDED_ENTITY_TYPES) == {"Value", "Role", "System", "Configurable"}
     assert g.GUIDED_EXTRACTION_INSTRUCTIONS.strip()
+
+
+def test_configurable_is_the_only_typed_entity():
+    """Only Configurable carries a field, so the attribute-extraction pass (and its LLM
+    cost) runs solely for changeable things; the others are classification/edge hints."""
+    assert "current_value" in g.GUIDED_ENTITY_TYPES["Configurable"].model_fields
+    for name in ("Value", "Role", "System"):
+        assert g.GUIDED_ENTITY_TYPES[name].model_fields == {}
 
 
 # --- dry-run artifact shape (no graph backend, no LLM) ------------------------
@@ -154,7 +162,7 @@ def test_baseline_is_registered(baseline_id: str):
     assert any(b.id == baseline_id for b in BaselineRegistry.load().list_baselines())
 
 
-# --- node_text_mode (summary | current_edges | bitemporal) --------------------
+# --- node_text_mode (summary | attributes | current_edges | bitemporal) -------
 
 def test_node_text_summary_includes_summary_and_attrs():
     text = g._node_text("API", "summary", summary="the public API", attributes={"rate_limit": "40 rpm"})
@@ -186,6 +194,55 @@ def test_node_text_bitemporal_surfaces_current_value():
     assert (
         g._node_text("public API", "bitemporal", current_facts=["rate limit is 40"], incident_count=3)
         == "public API: rate limit is 40"
+    )
+
+
+def test_node_text_attributes_prefers_current_value_and_drops_summary():
+    # The summary still says "100" (cumulative leak); attributes mode renders ONLY the
+    # clean current_value, so the stale value never reaches prediction.
+    text = g._node_text(
+        "public API rate limit",
+        "attributes",
+        summary="public API rate limit is set to 100 requests per minute",
+        attributes={"current_value": "40 requests per minute"},
+    )
+    assert text == "public API rate limit (current_value: 40 requests per minute)"
+    assert "100" not in text
+
+
+def test_node_text_attributes_falls_back_to_summary_when_no_attributes():
+    # Un-typed entities (no structured attributes) keep summary recall.
+    text = g._node_text("Pixel", "attributes", summary="a phone", attributes={})
+    assert text == "Pixel — a phone"
+
+
+def test_node_text_attributes_ignores_empty_attribute_values():
+    # An attribute present but empty must not suppress the summary fallback.
+    text = g._node_text("Pixel", "attributes", summary="a phone", attributes={"current_value": None})
+    assert text == "Pixel — a phone"
+
+
+def test_node_text_attributes_uses_current_edges_over_summary():
+    # No structured attribute, but the node has current edges: use those (clean) and DROP
+    # the history-aggregating summary (which would leak the superseded 'Priya owns').
+    text = g._node_text(
+        "billing service",
+        "attributes",
+        summary="Priya owns the billing service\nSam owns the billing service",
+        attributes={},
+        current_facts=["Sam owns the billing service"],
+        incident_count=2,
+    )
+    assert text == "billing service: Sam owns the billing service"
+    assert "Priya" not in text
+
+
+def test_node_text_attributes_drops_stale_only_node():
+    # Has incident edges but none current (e.g. a replaced 'Postgres') and no attribute:
+    # drop it rather than fall back to a summary that asserts the superseded state.
+    assert (
+        g._node_text("Postgres", "attributes", summary="Postgres was chosen", current_facts=[], incident_count=2)
+        is None
     )
 
 
