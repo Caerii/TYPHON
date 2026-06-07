@@ -204,6 +204,33 @@ floor. (2) **2 extraction calls hit the 16K completion-length cap and failed eve
 (consistent with "extraction is the bottleneck"). (3) n=1 conversation, 12 QA: a generalization
 *signal*, not a full LoCoMo sweep.
 
+### On the SOTA axis: generative reader + LLM-as-judge (2026-06-07)
+
+Every agent-memory SOTA number (Mem0 ~92.5, Zep ~75, …) is an **LLM-judge binary-correctness score
+over a *generated* answer**, not extractive token-recall. We added both (`typhon.eval.generation`
++ `scripts/judge_run.py`): an LLM composes an answer from the *same* retrieved facts each baseline
+saw, a second LLM grades it vs the reference. Applied post-hoc over the frozen run (no re-ingestion).
+Snapshot: `locomo_real_judged_2026-06-07.{json,txt}`.
+
+| baseline | n | **J-accuracy** | correct | token_recall | judge cost |
+|---|---|---|---|---|---|
+| attention | 12 | **0.0%** | 0/12 | 0.092 | $0.009 |
+| graphiti | 12 | **16.7%** | 2/12 | 0.153 | $0.014 |
+
+**Humbling but honest, and the comparison is finally meaningful:** graphiti is the *only* baseline
+that answers anything (2 vs 0); we are far below SOTA (75–92%) and the gap is **retrieval/extraction
+quality**, now measurable on the right axis. The reader is **conservative — it says "I don't know"
+when the facts don't contain the answer (no hallucination)**, so the low score is real retrieval
+gaps, not a broken reader.
+
+**Why this beats token_recall (the q011 smoking gun):** q011 ("Where did Caroline move from 4 years
+ago?", ref "Sweden") scored a *perfect* extractive `token_recall=1.0` because a retrieved fact
+contained the word "Sweden" ("…necklace from her grandma *in Sweden*") — which does **not** answer
+the question. The reader said "I don't know"; the judge scored it **wrong**. Token-overlap was a
+false positive; the J-score is honest. This is exactly why we needed the SOTA axis. Next levers are
+therefore retrieval (Tier 2: reranker → PPR → query decomposition) + extraction (Tier 3: the 16K
+cap), per `docs/research-notes/sota-agent-memory-2026.md`.
+
 ## Foundations added this pass
 
 - `StrictSchemaClient` (strict structured outputs over Together).

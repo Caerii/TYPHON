@@ -55,6 +55,11 @@ def score_artifact(artifact: dict[str, Any], *, hit_threshold: float = 0.5) -> d
     recall = metrics.get("token_recall")
 
     cross_episode = (artifact.get("memory_state") or {}).get("cross_episode") or {}
+    # LLM-as-judge verdict (binary correctness over the GENERATED answer — the SOTA axis), if a
+    # generative-reader + judge pass decorated this artifact (typhon.eval.generation). None when
+    # un-judged, so it never skews the count.
+    judge = prediction.get("llm_judge") or {}
+    llm_judge_correct = judge.get("correct") if isinstance(judge.get("correct"), bool) else None
 
     # Current (reference) value present? Supersession asks "what is true NOW", so the
     # reference answers ARE the current value; any one present means we recalled it.
@@ -71,6 +76,7 @@ def score_artifact(artifact: dict[str, Any], *, hit_threshold: float = 0.5) -> d
         "token_recall": recall,
         "token_precision": metrics.get("token_precision"),
         "exact_match": bool(metrics.get("exact_match")),
+        "llm_judge_correct": llm_judge_correct,  # bool (SOTA J-score) or None if un-judged
         "retrieved_fact_count": cross_episode.get("retrieved_fact_count"),
         "stale_value": stale_value,
         # Supersession signals (None outside the supersession probe so they don't skew sums).
@@ -92,11 +98,17 @@ def aggregate_artifacts(artifacts: list[dict[str, Any]], *, hit_threshold: float
     rows = [score_artifact(a, hit_threshold=hit_threshold) for a in artifacts]
     supers = [r for r in rows if r["probe"] == "supersession"]
     windows = [r for r in rows if r["probe"] == "window_recall"]
+    judged = [r for r in rows if isinstance(r["llm_judge_correct"], bool)]
+    judge_correct = sum(1 for r in judged if r["llm_judge_correct"])
     return {
         "n": len(rows),
         "mean_token_recall": _safe_mean([r["token_recall"] for r in rows]),
         "mean_token_f1": _safe_mean([r["token_f1"] for r in rows]),
         "exact_match_count": sum(1 for r in rows if r["exact_match"]),
+        # LLM-as-judge accuracy (the SOTA axis): correct / judged. None when no judge ran.
+        "llm_judge_n": len(judged),
+        "llm_judge_correct": judge_correct,
+        "llm_judge_accuracy": round(judge_correct / len(judged), 4) if judged else None,
         "supersession_n": len(supers),
         "supersession_stale_leaked": sum(1 for r in supers if r["stale_leaked"]),
         "supersession_stale_dominant": sum(1 for r in supers if r["stale_dominant"]),
