@@ -103,7 +103,7 @@ Conclusions:
    supersession leak 3/3 each trial) — deterministic at temp=0 once extraction is guided.
 4. **Shared-graph-per-conversation** is implemented (ingest a conversation once, answer all
    its QA against it; validated on real LoCoMo — a single graph for conv-26). Real LoCoMo is
-   **wired** (`locomo_real` benchmark + importer + CLI).
+   **wired and run** (`locomo_real` benchmark + importer + CLI) — generalization + cost in (7).
 5. **The write-time fix was attempted in the fork and does NOT resolve the leak.** We forked
    graphiti-core (`superintelligent-graphiti`) and filtered superseded edges out of the
    summary build (`_build_edges_by_node`, env-gated by `GRAPHITI_SUMMARIZE_CURRENT_ONLY`).
@@ -135,6 +135,18 @@ Conclusions:
    and was reverted. Snapshot:
    `results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`; pinned by a live
    integration test (`tests/test_graphiti_live.py`).
+7. **Real-LoCoMo generalization + cost (2026-06-07) — the "X% lift at Y cost" number.** Beyond
+   the synthetic probes, on real LoCoMo (conv-26, 12 multi-hop QA, shared-graph): graphiti mean
+   token_recall **0.1528 vs attention 0.0917 = +66.6% relative**, at a **one-time ~$0.46 per
+   conversation** (216 LLM calls, 519,831 tokens at $0.88/1M, 41 episodes; ~$0.038/QA amortized).
+   Per-sample it is a *mixed* result — graphiti wins 3 (q011 a perfect 1.0 vs 0.0), loses 4,
+   ties 5 — the aggregate win driven by cross-session questions a window can't reach. Honest
+   caveats: absolute recall is low for both (extractive prediction, not generative answering);
+   **2 extraction calls hit the 16K completion cap and failed even after retry** (Llama-3.3-70B
+   over-generates on messier real episodes → lost facts, wasted tokens in the $0.46); n=1
+   conversation. Snapshot: `results/cross_episode/locomo_real_compare_2026-06-07.{json,txt}`
+   (driver `scripts/run_locomo_real.py`). Cost is instrumented per-group on every artifact
+   (`cost` block + `BudgetLedger`).
 
 Foundations: `StrictSchemaClient`, guided extraction, combined edge+node search
 (`search_mode` + `node_text_mode` knobs), shared-graph-per-conversation, real-LoCoMo importer

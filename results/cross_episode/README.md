@@ -171,6 +171,39 @@ prediction (fork summary-regeneration) was therefore **not** pursued: it provabl
 db (Postgres is edgeless; SQLite's summary legitimately names it), and the structured-attribute
 path resolves the cases summary-regen was meant to.
 
+## Real-LoCoMo generalization + cost (2026-06-07)
+
+The sections above are synthetic probes (8 supersession + 5 window) that *isolate* the two
+claims. This is the **generalization** check: real LoCoMo QA — 12 multi-hop questions over one
+long multi-session conversation (snap-research conv-26) — plus the **measured cost** behind the
+lift (the "Y" in "X% lift at Y cost"). Shared-graph: the conversation is ingested **once**, all
+12 QA answered against that one graph. Snapshot: `locomo_real_compare_2026-06-07.{json,txt}`.
+
+| baseline | n | mean token_recall | exact | ingest tokens | USD |
+|---|---|---|---|---|---|
+| attention_baseline | 12 | 0.0917 | 0 | 0 | $0 |
+| graphiti_cross_episode | 12 | **0.1528** | 0 | 519,831 | **$0.457** |
+
+**+0.061 absolute recall = +66.6% relative**, at a **one-time ~$0.46/conversation** (216 LLM
+calls, 520K tokens, 41 episodes, $0.88/1M; ~$0.038/QA amortized — cheaper as more QA hit the
+same graph).
+
+**The mean hides a mixed result — report both.** Per-sample, graphiti **wins 3** (q011 a perfect
+1.000 vs 0.000, q003 +0.500, q002 +0.333), **loses 4** (q006 −0.500; q005/q008/q009 −0.200),
+**ties 5** (hard multi-hop, both miss). The aggregate win is driven by **cross-session questions
+a bounded window structurally can't reach** (q011 is the textbook case); where attention wins,
+the answer was recent/in-window and graphiti's *extraction* dropped or mis-ranked the fact — the
+extraction ceiling, not retrieval.
+
+**Honest caveats.** (1) Absolute recall is low for **both** — the shared prediction path is
+*extractive* (`build_prediction_block` selects retrieved text), not a generative LLM composing
+answers; the comparison isolates retrieval and the **+66% relative** is the signal, not the
+floor. (2) **2 extraction calls hit the 16K completion-length cap and failed even after retry**
+(Llama-3.3-70B over-generates on the messier real episodes), so some facts were lost and the
+~33K wasted tokens are *in* the $0.46 — better/chunked extraction would likely widen the lift
+(consistent with "extraction is the bottleneck"). (3) n=1 conversation, 12 QA: a generalization
+*signal*, not a full LoCoMo sweep.
+
 ## Foundations added this pass
 
 - `StrictSchemaClient` (strict structured outputs over Together).
@@ -190,9 +223,11 @@ path resolves the cases summary-regen was meant to.
 - Synthetic probe sets (8 supersession + 5 window), but **stable across 3 trials — std=0
   on every headline metric** (window_recall 5/5 and supersession 8/8 non-empty each trial;
   `trials_summary_2026-06-06.txt`). Deterministic at temp=0 once extraction is guided.
-- Real LoCoMo is now **wired** (`locomo_real` benchmark + `locomo_importer` + CLI; attention
-  runs, recall 0.0 on out-of-window answers). Efficient graphiti runs await
-  **shared-graph-per-conversation** (ingest each conversation once).
+- ✅ Real LoCoMo is **wired and run** (`locomo_real` + `locomo_importer` + CLI;
+  shared-graph-per-conversation lands, conversation ingested once). Head-to-head measured
+  2026-06-07: graphiti **+66.6% relative token-recall** (0.153 vs 0.092) at **~$0.46/conversation**
+  one-time — see [§ Real-LoCoMo generalization + cost](#real-locomo-generalization--cost-2026-06-07).
+  Next sweep: more conversations + chunked extraction (2 calls hit the 16K length cap).
 - ✅ Best-of-both temporal precision + recall — **done via Lever 1** (structured
   current-attributes + the `attributes` retrieval mode; see the Lever 1 section). Residual:
   the db prose-only / named-entity case (the floor, partly a metric artifact).
