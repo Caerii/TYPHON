@@ -118,17 +118,21 @@ Conclusions:
    The prediction in (5) is borne out: a typed `Configurable {current_value}` entity type (the
    only typed entity, so attribute extraction runs only for changeable things) plus a
    `node_text_mode="attributes"` retrieval mode (structured attribute → current incident edges
-   → drop stale-only → summary only when edgeless) cut the supersession leak **3/3 → 1/3 while
-   keeping window_recall 5/5 at full recall (1.0)** — best-of-both, not the 0.37 recall the
-   precision-only modes paid. Two of three supersession cases are now clean (rate-limit via the
-   attribute; owner via bi-temporally invalidated edges). The residual (`db`,
-   Postgres→SQLite) is the **floor**: extraction left Postgres/SQLite as separate *edgeless*
-   nodes (no currency signal), **and** the correct current fact legitimately names the old
-   value ("SQLite … replacing Postgres"), so the substring leak metric fires even on a perfect
-   answer — unfixable at the memory layer without abstractive answer generation. Part (5)'s
-   summary-regeneration was therefore *not* needed: it cannot help db, and the attribute path
-   resolves the cases it was meant to. Forcing db via extraction (anchor the project so an edge
-   forms) **regressed** window_recall and was reverted. Snapshot:
+   → drop stale-only → summary only when edgeless) deliver best-of-both at full recall (1.0),
+   not the 0.37 the precision-only modes paid. **The leak metric was also fixed** (it was
+   fragile — a substring test that fires even on a correct answer that names the value it
+   superseded): disentangled into `stale_dominant` (stale present **and** current absent — the
+   real failure), `clean` (current present **and** stale absent), and `current_recalled`.
+   Re-scored (no re-run): **stale_dominant graphiti 0/3 = attention 0/3; clean graphiti 2/3 vs
+   attention 0/3; current_recalled 3/3 both; window_recall 5/5 vs 0/5.** So the real win is
+   *cleanliness* — graphiti returns the current value alone (rate-limit via the attribute,
+   owner via bi-temporally invalidated edges) where attention dumps both — plus the categorical
+   window_recall win. The one non-`clean` case (`db`, Postgres→SQLite) is **not a failure**: it
+   recalls SQLite and stale doesn't dominate; it just can't be clean because the correct current
+   fact itself says "SQLite … replacing Postgres". Part (5)'s summary-regeneration was therefore
+   *not* needed: it cannot help db, and the attribute path resolves the cases it was meant to.
+   Forcing db via extraction (anchor the project so an edge forms) **regressed** window_recall
+   and was reverted. Snapshot:
    `results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`; pinned by a live
    integration test (`tests/test_graphiti_live.py`).
 

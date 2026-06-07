@@ -122,40 +122,51 @@ attributes, (2) summary regeneration" — is now built and measured for part (1)
   stale-only nodes → else (edgeless only) the summary. It **never** returns the
   history-aggregating summary when a currency signal exists.
 
-**Result** (vs the 3/3 leak of combined-search + summary mode):
+**Result.** *First, the metric was fixed* — the original `stale_leaked` (does the stale token
+appear anywhere?) is fragile: it fires even on a correct answer that faithfully names the value
+it superseded (db: "SQLite … *replacing Postgres*"). It is now disentangled into three signals
+(`aggregate.py`): `stale_dominant` (stale present **and** current absent — the real failure),
+`clean` (current present **and** stale absent — the strict ideal), and `current_recalled`
+(current present at all). The loose `stale_leaked` is kept for continuity but over-counts.
 
-| scenario | metric | attention | graphiti (lever 1) |
-|---|---|---|---|
-| window_recall | recall / hits | 0.0 / 0/5 | **1.0 / 5/5** |
-| supersession | stale leaked (lower better) | 3/3 | **1/3** |
-| supersession | mean recall | 0.90 | 0.89 |
+| metric (supersession, n=3) | attention | graphiti (lever 1) |
+|---|---|---|
+| **stale DOMINANT** — stale won (lower better) | 0/3 | **0/3** |
+| **clean current-only** (higher better) | 0/3 | **2/3** |
+| current recalled | 3/3 | 3/3 |
+| stale present — loose/old (FYI) | 3/3 | 1/3 |
+| window_recall — recall / hits | 0.0 / 0/5 | **1.0 / 5/5** |
 
-The leak drops to **1/3 without losing value recall** (1.0, not the 0.37 of the
-precision-only `current_edges`/`bitemporal` modes) — because the value now lives in a clean
-structured attribute instead of only in the cumulative summary. Per case:
+The true story the refined metric tells: **neither baseline lets the stale value *dominate*
+(both recall the in-window current value), but graphiti returns a *clean current-only* answer
+2/3 of the time where attention dumps both values every time (clean 0/3).** That cleanliness —
+plus the categorical window_recall win (5/5 vs 0/5) and full value recall (1.0, not the 0.37 of
+the precision-only `current_edges`/`bitemporal` modes) — is the best-of-both: the value now
+lives in a clean structured attribute instead of only in the cumulative summary. Per case:
 
 - **rate limit (100→40): CLEAN** — `current_value` carries 40; a single retrieved fact, no "100".
 - **owner (Priya→Sam): CLEAN** — extraction formed bi-temporally invalidated edges
   ("Priya owns" → invalid, "Sam owns" → current); the attributes mode renders nodes from
   current edges and drops the stale summary.
-- **db (Postgres→SQLite): still leaks (the 1/3) — and this is the floor.** Two compounding
-  reasons: (a) extraction modeled Postgres/SQLite as separate, *edgeless* `System` nodes (no
-  `Configurable` slot, no invalidatable edge), so there is no currency signal to drop the
-  stale node; (b) **the correct current fact itself names the old value** — SQLite's faithful
-  summary is "SQLite will be used … *replacing the initial choice of Postgres*", which
-  contains the token "Postgres", so the substring leak metric
-  (`_norm(stale_value) in _norm(predicted)`) fires even on a perfect answer. No retrieval or
-  summary-regeneration fix removes "Postgres" from a faithful current statement; only
-  abstractive answer generation or a reliably-extracted `current_value` slot would. Forcing
-  the latter via extraction instructions (anchor the project/effort so a `--uses-->` edge
-  forms and supersedes) **regressed** window_recall (5/5→4/5) without fixing db, so it was
-  reverted (`_runs_lever1c`).
+- **db (Postgres→SQLite): recalled + not stale-dominant, but not *clean*.** It recalls the
+  current value (SQLite) and the stale value does **not** dominate, so it is **not a real
+  failure** under the fixed metric — but it cannot be `clean` because **the correct current
+  fact itself names the old value**: SQLite's faithful summary is "SQLite will be used …
+  *replacing the initial choice of Postgres*". Two things conspire: extraction modeled
+  Postgres/SQLite as separate *edgeless* `System` nodes (no `Configurable` slot, no
+  invalidatable edge → no currency signal to drop the stale node), and even a perfect retrieval
+  can't strip "Postgres" from a faithful current statement. Only abstractive answer generation
+  or a reliably-extracted `current_value` slot would make it clean; forcing the latter via
+  extraction instructions (anchor the project so a `--uses-->` edge forms and supersedes)
+  **regressed** window_recall (5/5→4/5), so it was reverted (`_runs_lever1c`) — a useful
+  negative: pushing extraction past its reliable envelope costs recall elsewhere.
 
 **Honest bottom line:** structured current-attributes turn the recall↔precision tradeoff from
-"pick one" into best-of-both for the cases with extractable structure (2/3 supersession now
-clean *at full recall*). The residual is the prose-only supersession of a *named entity* whose
-current statement legitimately references the superseded one — partly a metric artifact, and
-not fixable at the memory layer without abstractive answer generation. Part (2) of the
+"pick one" into best-of-both: **no stale-domination (0/3), clean current-only answers 2/3**
+(vs attention 0/3) *at full value recall (1.0)*, plus the categorical window_recall win. The
+one non-`clean` case (db) is not a memory failure — the source's faithful current statement
+names the superseded value, so only abstractive answer generation could make it clean. Part (2)
+of the
 prediction (fork summary-regeneration) was therefore **not** pursued: it provably cannot help
 db (Postgres is edgeless; SQLite's summary legitimately names it), and the structured-attribute
 path resolves the cases summary-regen was meant to.

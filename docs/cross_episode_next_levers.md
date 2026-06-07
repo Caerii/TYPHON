@@ -15,9 +15,12 @@ platform.
 
 ## Lever 1 — Structured current-attributes + summary regeneration (the true best-of-both)
 
-**✅ RESOLVED (best-of-both via structured attributes) — leak 3/3 → 1/3 at full recall
-(1.0), window_recall 5/5.** Snapshot `results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`;
-ADR 0009 §6; live regression `tests/test_graphiti_live.py`.
+**✅ RESOLVED (best-of-both via structured attributes) — stale-domination 0/3, clean
+current-only 2/3 (vs attention 0/3), full value recall 1.0, window_recall 5/5. The leak
+metric was also fixed** (the old substring `stale_leaked` over-counts; now split into
+`stale_dominant`/`clean`/`current_recalled`). Snapshot
+`results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`; ADR 0009 §6; live
+regression `tests/test_graphiti_live.py`.
 
 - *The earlier "`node.attributes = null`" diagnosis was WRONG.* The null was **not** a
   classification/timing failure — it was the **empty-model gate** in graphiti
@@ -38,13 +41,14 @@ ADR 0009 §6; live regression `tests/test_graphiti_live.py`.
   residual (`db`: Postgres is edgeless, and SQLite's correct summary legitimately names
   Postgres), and the attribute path resolves the cases regen was meant to. The earlier
   fork edge-filter (ADR 0009 §5) stays reverted.
-- *Residual (the floor): `db` (Postgres→SQLite) still leaks (1/3).* Extraction left
-  Postgres/SQLite as separate *edgeless* nodes (no currency signal), **and** the correct
-  current fact names the old value ("SQLite … replacing Postgres"), so the substring leak
-  metric fires even on a perfect answer — unfixable at the memory layer without abstractive
-  answer generation. Forcing db via extraction (anchor the project so a `--uses-->` edge forms)
-  **regressed** window_recall (5/5→4/5) and was reverted — a useful negative: pushing
-  extraction past its reliable envelope costs recall elsewhere.
+- *Residual: `db` (Postgres→SQLite) is the one non-`clean` case — but NOT a real failure.* It
+  recalls SQLite and stale doesn't dominate; it just can't be clean because the correct current
+  fact itself names the old value ("SQLite … replacing Postgres"). Extraction left
+  Postgres/SQLite as separate *edgeless* nodes (no currency signal), and no retrieval strips
+  "Postgres" from a faithful current statement — only abstractive answer generation or a
+  reliably-extracted `current_value` slot would. Forcing db via extraction (anchor the project
+  so a `--uses-->` edge forms) **regressed** window_recall (5/5→4/5) and was reverted — a useful
+  negative: pushing extraction past its reliable envelope costs recall elsewhere.
 
 **Problem.** A changed fact ("rate limit 100 → 40") leaks the stale value because the node
 `summary` is LLM-written from the *first* episode and never regenerated. The
