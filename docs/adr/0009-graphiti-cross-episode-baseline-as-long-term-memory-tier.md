@@ -114,6 +114,23 @@ Conclusions:
    (`db`: "use SQLite, replacing Postgres"). So the tradeoff is **fundamental** to Graphiti's
    design + cheap-LLM extraction; the real resolution needs structured current-attribute
    extraction **and** summary regeneration. Navigate it today with `node_text_mode`.
+6. **Lever 1 — structured current-attributes resolve the tradeoff (best-of-both, same day).**
+   The prediction in (5) is borne out: a typed `Configurable {current_value}` entity type (the
+   only typed entity, so attribute extraction runs only for changeable things) plus a
+   `node_text_mode="attributes"` retrieval mode (structured attribute → current incident edges
+   → drop stale-only → summary only when edgeless) cut the supersession leak **3/3 → 1/3 while
+   keeping window_recall 5/5 at full recall (1.0)** — best-of-both, not the 0.37 recall the
+   precision-only modes paid. Two of three supersession cases are now clean (rate-limit via the
+   attribute; owner via bi-temporally invalidated edges). The residual (`db`,
+   Postgres→SQLite) is the **floor**: extraction left Postgres/SQLite as separate *edgeless*
+   nodes (no currency signal), **and** the correct current fact legitimately names the old
+   value ("SQLite … replacing Postgres"), so the substring leak metric fires even on a perfect
+   answer — unfixable at the memory layer without abstractive answer generation. Part (5)'s
+   summary-regeneration was therefore *not* needed: it cannot help db, and the attribute path
+   resolves the cases it was meant to. Forcing db via extraction (anchor the project so an edge
+   forms) **regressed** window_recall and was reverted. Snapshot:
+   `results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`; pinned by a live
+   integration test (`tests/test_graphiti_live.py`).
 
 Foundations: `StrictSchemaClient`, guided extraction, combined edge+node search
 (`search_mode` + `node_text_mode` knobs), shared-graph-per-conversation, real-LoCoMo importer

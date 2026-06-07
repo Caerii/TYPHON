@@ -1,0 +1,15 @@
+
+### supersession  (benchmark=locomo, window=None)
+==========================================================
+metric                               attention    graphiti
+----------------------------------------------------------
+stale LEAKED (lower better)                3/3         1/3
+mean token_recall                       0.9036      0.8857
+
+### window_recall  (benchmark=locomo_window, window=40)
+==========================================================
+metric                               attention    graphiti
+----------------------------------------------------------
+window_recall hits                         0/5         5/5
+window_recall mean recall                  0.0         1.0
+mean token_recall                          0.0         1.0

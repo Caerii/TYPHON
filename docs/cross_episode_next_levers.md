@@ -15,18 +15,36 @@ platform.
 
 ## Lever 1 — Structured current-attributes + summary regeneration (the true best-of-both)
 
-**⚠️ Both halves probed — neither is a quick win (status: open, harder than scoped).**
-- *Attributes:* a throwaway test with a typed `Configurable {current_value}` entity type left
-  `node.attributes = null` on all three supersession cases — the subjects weren't classified
-  to the custom type / the attribute pass didn't populate the field. Getting values into
-  structured attributes needs real work on entity modeling + ensuring the attribute-extraction
-  pass runs and fills fields.
-- *Summary regen (fork):* already attempted and reverted (see ADR 0009 §5) — the leak is the
-  cumulative LLM summary, not the edge-append, and a sample with zero edges still leaks.
-- *Silver lining:* the generated summaries are already fairly temporal (`SQLite will be used`,
-  `Postgres was chosen`, `Sam owns`); the failure is that the extractive `predict_answer`
-  still selects the stale sentence — so a **temporal-aware reranker** (prefer current-tense /
-  current-edge-aligned sentences) may be a lighter third angle than either half above.
+**✅ RESOLVED (best-of-both via structured attributes) — leak 3/3 → 1/3 at full recall
+(1.0), window_recall 5/5.** Snapshot `results/cross_episode/comparison_lever1_attributes_2026-06-06.{json,txt}`;
+ADR 0009 §6; live regression `tests/test_graphiti_live.py`.
+
+- *The earlier "`node.attributes = null`" diagnosis was WRONG.* The null was **not** a
+  classification/timing failure — it was the **empty-model gate** in graphiti
+  (`node_operations.py:790`: `len(entity_type.model_fields) == 0 → return {}`). The baseline's
+  `Value`/`Role`/`System` types carry **no fields**, so the attribute pass was a guaranteed
+  no-op. Two probes nailed it: a node labeled `Configurable` (a type *with* a `current_value`
+  field) → `{"current_value": "40 requests per minute"}`; labeled only `Entity` → `{}`. The
+  real `add_episode` pipeline then classifies *and* updates the field to current (100→40)
+  unaided.
+- *Fix (our layer, no fork divergence):* (1) a typed `Configurable {current_value}` entity type
+  — the only typed entity, so per-node attribute extraction (and its cost) runs only for
+  changeable things; (2) a `node_text_mode="attributes"` retrieval mode that is a layered
+  preference — structured attribute → current incident edges (bi-temporally clean) → drop
+  stale-only nodes → summary only when edgeless. It never returns the history-aggregating
+  summary when a currency signal exists. So values surface clean (rate-limit) and edge-clean
+  supersessions surface clean (owner).
+- *Summary regen (fork) was NOT pursued* — and is provably unnecessary: it cannot help the one
+  residual (`db`: Postgres is edgeless, and SQLite's correct summary legitimately names
+  Postgres), and the attribute path resolves the cases regen was meant to. The earlier
+  fork edge-filter (ADR 0009 §5) stays reverted.
+- *Residual (the floor): `db` (Postgres→SQLite) still leaks (1/3).* Extraction left
+  Postgres/SQLite as separate *edgeless* nodes (no currency signal), **and** the correct
+  current fact names the old value ("SQLite … replacing Postgres"), so the substring leak
+  metric fires even on a perfect answer — unfixable at the memory layer without abstractive
+  answer generation. Forcing db via extraction (anchor the project so a `--uses-->` edge forms)
+  **regressed** window_recall (5/5→4/5) and was reverted — a useful negative: pushing
+  extraction past its reliable envelope costs recall elsewhere.
 
 **Problem.** A changed fact ("rate limit 100 → 40") leaks the stale value because the node
 `summary` is LLM-written from the *first* episode and never regenerated. The
@@ -137,10 +155,12 @@ read/write).
 
 ---
 
-### Suggested order
+### Status / order
 
-1. **Lever 2** (chunking) — small, unblocks real-LoCoMo numbers, low risk.
-2. **Lever 1** (attributes, then summary regen) — the real best-of-both; do attributes first
-   (our layer) since they may suffice, then the fork regen if still leaking.
-3. **Lever 3** (platform projection) — the productization; depends on 1–2 being solid and on
-   platform hosting + governance decisions.
+1. ✅ **Lever 2** (chunking) — done; unblocked real-LoCoMo extraction (overflow eliminated).
+2. ✅ **Lever 1** (structured attributes) — done; best-of-both at the retrieval layer
+   (leak 3/3 → 1/3 at full recall). Attributes alone sufficed; summary regen proved
+   unnecessary. Residual `db` case is the documented floor.
+3. ⏭ **Lever 3** (platform projection) — the productization; now unblocked (1–2 solid), and
+   gated only on platform hosting + governance (enforcement-on: audit_events + provenance +
+   dregg authz) decisions.

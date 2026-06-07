@@ -34,5 +34,6 @@ data/benchmarks/*/
 # Regenerate via: python scripts/build_locomo_benchmark.py --input locomo10.json
 data/benchmarks/locomo_real/
 # Per-run artifacts from scripts/compare_cross_episode.py (regenerated; curated
-# snapshots are committed alongside results/cross_episode/README.md).
-results/cross_episode/_runs/
+# snapshots are committed alongside results/cross_episode/README.md). The glob covers
+# scenario-suffixed scratch dirs (_runs_lever1, _runs_lever1b, …).
+results/cross_episode/_runs*/

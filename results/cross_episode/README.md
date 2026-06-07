@@ -2,6 +2,13 @@
 
 Run date: 2026-06-06. Raw artifacts: `comparison_*_2026-06-06.{json,txt}`.
 
+> **Latest result (same day): the Lever 1 best-of-both.** Structured current-attributes
+> cut the supersession leak **3/3 → 1/3 while keeping window_recall 5/5 at full recall
+> (1.0)** — the best-of-both the tradeoff section below called unreachable at retrieval
+> time. See **[§ Lever 1](#lever-1--structured-current-attributes-best-of-both-realized-2026-06-06)**;
+> snapshot `comparison_lever1_attributes_2026-06-06.{json,txt}`. The sections above are
+> the journey that located the tradeoff Lever 1 then resolved.
+
 ## Stack
 
 - **Extraction LLM:** `meta-llama/Llama-3.3-70B-Instruct-Turbo` via **Together.ai**.
@@ -95,6 +102,64 @@ Graphiti's design (LLM-written cumulative summaries) plus cheap-LLM extraction �
 value-updates as **structured, current node attributes**, and (2) **regenerating** node
 summaries on supersession. Until then, navigate the tradeoff with `node_text_mode`.
 
+## Lever 1 — structured current-attributes (best-of-both, realized 2026-06-06)
+
+The two-part resolution the tradeoff section predicted — "(1) structured current node
+attributes, (2) summary regeneration" — is now built and measured for part (1), and **part
+(1) alone reaches the best-of-both** for the cases with extractable structure. Snapshot:
+`comparison_lever1_attributes_2026-06-06.{json,txt}`.
+
+**Mechanism (our layer — no fork divergence):**
+
+- A typed `Configurable {current_value}` entity type — the *only* typed entity, so the
+  per-node attribute-extraction pass (and its LLM cost) runs **only** for changeable things.
+  Graphiti re-extracts node attributes per episode with the prior attributes as context and
+  merges them, so `current_value` is **updated to the current value on supersession**
+  (validated end-to-end: rate limit 100→40; committed live regression in
+  `tests/test_graphiti_live.py`).
+- A `node_text_mode="attributes"` retrieval mode that is a layered preference:
+  structured attribute → else current incident edges (bi-temporally clean) → else *drop*
+  stale-only nodes → else (edgeless only) the summary. It **never** returns the
+  history-aggregating summary when a currency signal exists.
+
+**Result** (vs the 3/3 leak of combined-search + summary mode):
+
+| scenario | metric | attention | graphiti (lever 1) |
+|---|---|---|---|
+| window_recall | recall / hits | 0.0 / 0/5 | **1.0 / 5/5** |
+| supersession | stale leaked (lower better) | 3/3 | **1/3** |
+| supersession | mean recall | 0.90 | 0.89 |
+
+The leak drops to **1/3 without losing value recall** (1.0, not the 0.37 of the
+precision-only `current_edges`/`bitemporal` modes) — because the value now lives in a clean
+structured attribute instead of only in the cumulative summary. Per case:
+
+- **rate limit (100→40): CLEAN** — `current_value` carries 40; a single retrieved fact, no "100".
+- **owner (Priya→Sam): CLEAN** — extraction formed bi-temporally invalidated edges
+  ("Priya owns" → invalid, "Sam owns" → current); the attributes mode renders nodes from
+  current edges and drops the stale summary.
+- **db (Postgres→SQLite): still leaks (the 1/3) — and this is the floor.** Two compounding
+  reasons: (a) extraction modeled Postgres/SQLite as separate, *edgeless* `System` nodes (no
+  `Configurable` slot, no invalidatable edge), so there is no currency signal to drop the
+  stale node; (b) **the correct current fact itself names the old value** — SQLite's faithful
+  summary is "SQLite will be used … *replacing the initial choice of Postgres*", which
+  contains the token "Postgres", so the substring leak metric
+  (`_norm(stale_value) in _norm(predicted)`) fires even on a perfect answer. No retrieval or
+  summary-regeneration fix removes "Postgres" from a faithful current statement; only
+  abstractive answer generation or a reliably-extracted `current_value` slot would. Forcing
+  the latter via extraction instructions (anchor the project/effort so a `--uses-->` edge
+  forms and supersedes) **regressed** window_recall (5/5→4/5) without fixing db, so it was
+  reverted (`_runs_lever1c`).
+
+**Honest bottom line:** structured current-attributes turn the recall↔precision tradeoff from
+"pick one" into best-of-both for the cases with extractable structure (2/3 supersession now
+clean *at full recall*). The residual is the prose-only supersession of a *named entity* whose
+current statement legitimately references the superseded one — partly a metric artifact, and
+not fixable at the memory layer without abstractive answer generation. Part (2) of the
+prediction (fork summary-regeneration) was therefore **not** pursued: it provably cannot help
+db (Postgres is edgeless; SQLite's summary legitimately names it), and the structured-attribute
+path resolves the cases summary-regen was meant to.
+
 ## Foundations added this pass
 
 - `StrictSchemaClient` (strict structured outputs over Together).
@@ -103,9 +168,11 @@ summaries on supersession. Until then, navigate the tradeoff with `node_text_mod
   retrieval, and the `search_mode` + `node_text_mode` knobs (pure `_node_text` builder).
 - Real-LoCoMo importer (`locomo_importer` + CLI + `locomo_real`) and an eval aggregation
   module (`typhon.eval.aggregate`).
-- **TYPHON's first test suite** (`tests/`, 33 tests: session splitting, fact ordering,
-  availability gating, strict-client wiring, node-text modes, dry-run artifact shape,
-  importer mapping, eval aggregation). `pytest` config in `pyproject.toml`.
+- **TYPHON's first test suite** (`tests/`, 37 pure tests: session splitting, fact ordering,
+  availability gating, strict-client wiring, node-text modes incl. `attributes`, dry-run
+  artifact shape, importer mapping, eval aggregation) **plus an opt-in live integration test**
+  (`test_graphiti_live.py`, skipped without a backend) that pins the supersession fix.
+  `pytest` config in `pyproject.toml`.
 
 ## Caveats / next
 
@@ -115,5 +182,7 @@ summaries on supersession. Until then, navigate the tradeoff with `node_text_mod
 - Real LoCoMo is now **wired** (`locomo_real` benchmark + `locomo_importer` + CLI; attention
   runs, recall 0.0 on out-of-window answers). Efficient graphiti runs await
   **shared-graph-per-conversation** (ingest each conversation once).
-- Best-of-both temporal precision + recall (bi-temporal node summaries).
+- ✅ Best-of-both temporal precision + recall — **done via Lever 1** (structured
+  current-attributes + the `attributes` retrieval mode; see the Lever 1 section). Residual:
+  the db prose-only / named-entity case (the floor, partly a metric artifact).
 - Fresh per-sample graph + synthetic valid-times remain (baseline `limitations`).
