@@ -6,10 +6,23 @@ per-baseline metrics so two baselines can be compared head-to-head on the same
 benchmark. Beyond the standard token metrics it computes two cross-episode probes,
 keyed off ``fixture.metadata``:
 
-- ``stale_leaked`` (probe="supersession"): a fact was later changed; did the
-  predicted answer still contain the ``stale_value``? (temporal correctness)
+- supersession (probe="supersession"): a fact was later changed; did the answer give
+  the *current* value, the *stale* one, or both? Measured with three booleans (below).
 - ``window_hit`` (probe="window_recall"): the answer sat outside a bounded window;
   did retrieval recall it (token_recall > ``hit_threshold``)? (persistence)
+
+**Supersession scoring — why three signals, not one.** The original single
+``stale_leaked`` = "does the stale token appear anywhere in the answer" is fragile: it
+fires even when the answer is *correct*, because a faithful current statement can name the
+value it superseded (e.g. db: "SQLite … *replacing Postgres*" contains "Postgres"). So a
+substring hit conflates "the stale value won" with "the answer correctly mentions history".
+We disentangle them against ``reference_answers`` (the current value) and ``stale_value``:
+
+- ``current_recalled`` = a reference (current) value is present — did we get it right at all?
+- ``stale_dominant``  = stale present **and current absent** — the genuine failure (stale won).
+- ``clean``           = current present **and stale absent** — the strict ideal (current-only).
+- ``stale_leaked``    = stale present (the original loose signal; kept for continuity, but it
+  over-counts — prefer ``stale_dominant`` for "did temporal correctness fail").
 
 Pure / dependency-free, so it is unit-testable and reusable by any runner.
 """
@@ -22,6 +35,12 @@ from typing import Any
 
 def _norm(text: str | None) -> str:
     return " ".join((text or "").lower().split())
+
+
+def _contains(haystack: str, needle: str | None) -> bool:
+    """True if ``needle`` (normalized, non-empty) is a substring of ``haystack`` (normalized)."""
+    n = _norm(str(needle)) if needle is not None else ""
+    return bool(n) and n in _norm(haystack)
 
 
 def score_artifact(artifact: dict[str, Any], *, hit_threshold: float = 0.5) -> dict[str, Any]:
@@ -37,6 +56,13 @@ def score_artifact(artifact: dict[str, Any], *, hit_threshold: float = 0.5) -> d
 
     cross_episode = (artifact.get("memory_state") or {}).get("cross_episode") or {}
 
+    # Current (reference) value present? Supersession asks "what is true NOW", so the
+    # reference answers ARE the current value; any one present means we recalled it.
+    references = fixture.get("reference_answers") or prediction.get("reference_answers") or []
+    current_recalled = any(_contains(predicted, ref) for ref in references)
+    stale_present = _contains(predicted, stale_value)
+    is_supersession = probe == "supersession"
+
     return {
         "sample_id": fixture.get("sample_id"),
         "probe": probe,
@@ -47,7 +73,11 @@ def score_artifact(artifact: dict[str, Any], *, hit_threshold: float = 0.5) -> d
         "exact_match": bool(metrics.get("exact_match")),
         "retrieved_fact_count": cross_episode.get("retrieved_fact_count"),
         "stale_value": stale_value,
-        "stale_leaked": bool(stale_value) and (_norm(str(stale_value)) in _norm(predicted)),
+        # Supersession signals (None outside the supersession probe so they don't skew sums).
+        "current_recalled": current_recalled if is_supersession else None,
+        "stale_leaked": stale_present,  # loose: stale token present anywhere (over-counts)
+        "stale_dominant": (stale_present and not current_recalled) if is_supersession else None,
+        "clean": (current_recalled and not stale_present) if is_supersession else None,
         "window_hit": probe == "window_recall" and isinstance(recall, (int, float)) and recall > hit_threshold,
     }
 
@@ -69,6 +99,9 @@ def aggregate_artifacts(artifacts: list[dict[str, Any]], *, hit_threshold: float
         "exact_match_count": sum(1 for r in rows if r["exact_match"]),
         "supersession_n": len(supers),
         "supersession_stale_leaked": sum(1 for r in supers if r["stale_leaked"]),
+        "supersession_stale_dominant": sum(1 for r in supers if r["stale_dominant"]),
+        "supersession_clean": sum(1 for r in supers if r["clean"]),
+        "supersession_current_recalled": sum(1 for r in supers if r["current_recalled"]),
         "window_recall_n": len(windows),
         "window_recall_hits": sum(1 for r in windows if r["window_hit"]),
         "window_recall_mean_recall": _safe_mean([r["token_recall"] for r in windows]),
