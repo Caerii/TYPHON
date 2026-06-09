@@ -98,6 +98,37 @@ fact-augmented key expansion (indexing), **time-aware query expansion** (retriev
     changes → confidently wrong"). No memory vendor in this race has governance — that's our differentiation,
     not a faster %.
 
+## Status (2026-06-08): Tier 1 done, Tier 2 Phase 1 done
+
+- **Tier 1 (on the SOTA axis):** generative reader + LLM-judge shipped (`typhon.eval.generation`,
+  `scripts/judge_run.py`). First J-scores on real-LoCoMo: graphiti 16.7% vs attention 0%.
+- **Tier 2, Phase 1 (reranker):** shipped a backend-agnostic listwise reranker (`reranker.py`) —
+  Graphiti's stock cross-encoder needs OpenAI-only token logprobs and crashes on Together/local.
+  Result: reranking **raised J-score 0.083→0.167** while *lowering* token_recall (it demotes the
+  lexical-overlap distractors that inflate recall but don't answer). See
+  `results/cross_episode/tier2_phase1_reranker_2026-06-08.{txt,json}`.
+- **Still open:** Tier 2 Phases 2-3 (PPR multi-hop, query decomposition), Tier 3 (the 16K
+  extraction cap + cost), Tier 4 (LongMemEval + governed memory).
+
+## Three further directions (memory as a *sleep/consolidation* system)
+
+Beyond the ranked tiers, a frame worth pursuing: SOTA memory systems only *write on ingest*. Human
+memory also writes *offline*, during sleep — replay, consolidation, pruning. Three concrete ideas:
+
+1. **The Dream Pass — offline consolidation as a first-class write path.** A periodic background job
+   that *replays* recent episodes over the graph: re-weight edges by traversal frequency, merge
+   duplicate entities, decay/retire stale nodes, and **precompute the spreading-activation (PPR)
+   landscape** so morning retrieval is cheap (turns the expensive part of HippoRAG-2 into an offline
+   cost). Maps cleanly onto Graphiti as a scheduled "consolidate(group_id)" pass.
+2. **Confidence-superposition retrieval.** Instead of a hard current-vs-superseded cut at read time,
+   return the bi-temporal candidates *together*, each with a **time-decayed confidence**, and let the
+   reader weigh them — some questions want the *old* value. Generalizes today's `node_text_mode` /
+   `current_facts_only` into a soft, query-conditioned blend.
+3. **Lethe — a governed forgetting budget.** Forgetting as a first-class, *audited* operation (not an
+   accident of TTLs): the "right to be forgotten" as a memory primitive on the audit ledger, behind a
+   capability. This is precisely the **"mnemonic sovereignty"** open problem (arXiv:2604.16548) we
+   named as SIG's differentiation — no memory vendor in the race governs *deletion*.
+
 ## Sources
 - Zep — "Is Mem0 Really SOTA in Agent Memory?" https://blog.getzep.com/lies-damn-lies-statistics-is-mem0-really-sota-in-agent-memory/
 - Mem0 — "State of AI Agent Memory 2026" https://mem0.ai/blog/state-of-ai-agent-memory-2026

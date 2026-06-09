@@ -16,6 +16,7 @@ try:  # pragma: no cover - optional dependency
     import openai
 
     from graphiti_core import Graphiti
+    from graphiti_core.cross_encoder.client import CrossEncoderClient
     from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
     from graphiti_core.edges import EntityEdge
     from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
@@ -49,6 +50,7 @@ except Exception as exc:  # noqa: BLE001 - any import failure means "unavailable
     OpenAIEmbedder = None  # type: ignore[assignment]
     OpenAIEmbedderConfig = None  # type: ignore[assignment]
     OpenAIRerankerClient = None  # type: ignore[assignment]
+    CrossEncoderClient = None  # type: ignore[assignment]
     COMBINED_HYBRID_SEARCH_RRF = COMBINED_HYBRID_SEARCH_CROSS_ENCODER = COMBINED_HYBRID_SEARCH_MMR = None  # type: ignore[assignment]
     EDGE_HYBRID_SEARCH_RRF = EDGE_HYBRID_SEARCH_CROSS_ENCODER = EDGE_HYBRID_SEARCH_MMR = EDGE_HYBRID_SEARCH_NODE_DISTANCE = None  # type: ignore[assignment]
     NODE_HYBRID_SEARCH_RRF = NODE_HYBRID_SEARCH_CROSS_ENCODER = NODE_HYBRID_SEARCH_MMR = NODE_HYBRID_SEARCH_NODE_DISTANCE = None  # type: ignore[assignment]
@@ -69,6 +71,7 @@ __all__ = [
     "OpenAIEmbedder",
     "OpenAIEmbedderConfig",
     "OpenAIRerankerClient",
+    "CrossEncoderClient",
     "RateLimitError",
     "RefusalError",
     "COMBINED_HYBRID_SEARCH_RRF",

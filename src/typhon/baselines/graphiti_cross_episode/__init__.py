@@ -27,7 +27,8 @@ from ._deps import GRAPHITI_AVAILABLE
 from .client import StrictSchemaClient
 from .extraction import GUIDED_ENTITY_TYPES, GUIDED_EXTRACTION_INSTRUCTIONS
 from .facts import _node_text, _order_facts
-from .graph import _availability, _build_graphiti, _group_samples
+from .graph import _availability, _build_graphiti, _group_samples, _resolve_search_recipe
+from .reranker import ListwiseReranker
 from .runner import run_graphiti_cross_episode_baseline
 from .sessions import _chunk_text, _episodes, _split_sessions
 
@@ -35,6 +36,7 @@ __all__ = [
     "run_graphiti_cross_episode_baseline",
     "GRAPHITI_AVAILABLE",
     "StrictSchemaClient",
+    "ListwiseReranker",
     "GUIDED_ENTITY_TYPES",
     "GUIDED_EXTRACTION_INSTRUCTIONS",
     # Re-exported for tests / introspection (the package's internal helpers).
@@ -45,5 +47,6 @@ __all__ = [
     "_order_facts",
     "_build_graphiti",
     "_group_samples",
+    "_resolve_search_recipe",
     "_availability",
 ]

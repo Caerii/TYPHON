@@ -147,6 +147,20 @@ Conclusions:
    conversation. Snapshot: `results/cross_episode/locomo_real_compare_2026-06-07.{json,txt}`
    (driver `scripts/run_locomo_real.py`). Cost is instrumented per-group on every artifact
    (`cost` block + `BudgetLedger`).
+8. **SOTA axis + Tier 2 Phase 1 reranker (2026-06-07/08).** SOTA agent-memory numbers (Mem0/Zep)
+   are an **LLM-judge** binary-correctness score over a *generated* answer, not extractive recall;
+   `typhon.eval.generation` adds a generative reader + LLM-judge (J-score), applied post-hoc over the
+   *same* retrieved facts (`scripts/judge_run.py`). First Tier-2 retrieval lever: a backend-agnostic
+   **`ListwiseReranker`** (`reranker.py`), because Graphiti's stock cross-encoder ranks via OpenAI-only
+   token `logprobs` + `logit_bias` tokenizer IDs and **crashes on Together/local** (empty
+   `logprobs.content` → `zip(strict=True)` raises). The replacement scores all candidates in **one**
+   strict-structured-output call (RankGPT-style), Pydantic-validated, usage-counted, fail-closed,
+   model-via-config. On real-LoCoMo (conv-26, 12 QA), reranking **lowered token_recall 0.194→0.125 but
+   raised J-score 0.083→0.167 (1/12→2/12 correct)** — the metrics diverge *because* the reranker demotes
+   lexical-overlap distractors (which inflate token_recall) and promotes genuinely-relevant facts (q004
+   identity: "transgender conference" reranked to #1 → correct). Confirms J-score is the right axis;
+   n=1, so +1 answer is a signal not a sweep. Snapshot:
+   `results/cross_episode/tier2_phase1_reranker_2026-06-08.{json,txt}` (driver `scripts/tier2_compare.py`).
 
 Foundations: `StrictSchemaClient`, guided extraction, combined edge+node search
 (`search_mode` + `node_text_mode` knobs), shared-graph-per-conversation, real-LoCoMo importer

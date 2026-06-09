@@ -231,6 +231,34 @@ false positive; the J-score is honest. This is exactly why we needed the SOTA ax
 therefore retrieval (Tier 2: reranker → PPR → query decomposition) + extraction (Tier 3: the 16K
 cap), per `docs/research-notes/sota-agent-memory-2026.md`.
 
+### Tier 2, Phase 1 — listwise reranker doubles the J-score (2026-06-08)
+
+First retrieval lever. Graphiti ships a cross-encoder reranker but **it crashes on Together/local**:
+it ranks by reading per-token `logprobs` of a forced "True"/"False", nudged with
+`logit_bias={'6432','7983'}` (OpenAI tokenizer IDs). Together/Llama returns an **empty**
+`logprobs.content`, so the stock client's `zip(passages, scores, strict=True)` raises (verified).
+We replaced it with a backend-agnostic **`ListwiseReranker`**: **one** strict-structured-output call
+scores *all* candidates at once (RankGPT-style), Pydantic-validated, usage-counted, fail-closed to
+input order, and portable to local models (the TYPHON thesis: scaffolding > model size). Snapshot:
+`tier2_phase1_reranker_2026-06-08.{json,txt}`.
+
+| variant | n | token_recall | **J-accuracy** | correct |
+|---|---|---|---|---|
+| RRF (baseline) | 12 | 0.194 | 0.083 | 1/12 |
+| **Cross-Encoder rerank** | 12 | 0.125 | **0.167** | **2/12** |
+
+**The two metrics move in *opposite* directions — and that is the result, not a bug.** Reranking
+*lowered* token_recall (−0.069) but *raised* J-score (+0.083). token_recall rewards lexical overlap,
+so a vague word-sharing distractor inflates it without answering; the reranker demotes those (costing
+recall) and promotes the facts that actually answer (gaining correctness). We optimize the axis SOTA
+reports, and on it reranking helped. **The clean win is q004** ("What is Caroline's identity?",
+ref "Transgender"): RRF surfaced vague overlap ("Embracing Identity… journey of acceptance") → reader
+guessed "LGBTQ" → wrong; the reranker pulled **"Caroline is attending a transgender conference"** to
+#1 → reader answered "Transgender" → correct. A real retrieval improvement, not judge noise.
+**Honest caveat:** n=1 conversation / 12 QA, so the gain is literally +1 correct answer — a signal,
+not a sweep. Still far below SOTA; PPR multi-hop + query decomposition (rest of Tier 2) and the 16K
+extraction cap (Tier 3) remain. Reproduce: `python scripts/tier2_compare.py`.
+
 ## Foundations added this pass
 
 - `StrictSchemaClient` (strict structured outputs over Together).

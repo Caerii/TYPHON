@@ -38,6 +38,7 @@ from ._deps import (
 from .client import StrictSchemaClient
 from .extraction import GUIDED_ENTITY_TYPES, GUIDED_EXTRACTION_INSTRUCTIONS
 from .facts import _node_text
+from .reranker import ListwiseReranker
 from .sessions import _episodes
 
 
@@ -84,6 +85,18 @@ def _build_graphiti(settings: dict[str, Any]) -> Any:
     llm_config = LLMConfig(
         api_key=api_key, base_url=base_url, model=model, small_model=small_model, temperature=0.0
     )
+
+    # Reranker selection. The cross_encoder recipe invokes ``cross_encoder.rank`` to reorder
+    # candidates; graphiti's stock OpenAIRerankerClient needs OpenAI-only token logprobs that
+    # Together/local backends don't return (it crashes there — see reranker.py). When the
+    # variant actually uses the reranker, swap in the backend-agnostic ListwiseReranker; the
+    # RRF/MMR recipes never call rank(), so the stock client is fine (and cheaper to build).
+    search_variant = str(settings.get("search_variant", "rrf"))
+    if search_variant == "cross_encoder" and ListwiseReranker is not None:
+        cross_encoder = ListwiseReranker(config=llm_config)
+    else:
+        cross_encoder = OpenAIRerankerClient(config=llm_config)
+
     return Graphiti(
         os.environ.get(str(settings.get("graph_uri_env", "GRAPH_URI")), "bolt://localhost:7687"),
         os.environ.get(str(settings.get("graph_user_env", "GRAPH_USER")), "neo4j"),
@@ -97,7 +110,7 @@ def _build_graphiti(settings: dict[str, Any]) -> Any:
                 embedding_dim=emb_dim,
             )
         ),
-        cross_encoder=OpenAIRerankerClient(config=llm_config),
+        cross_encoder=cross_encoder,
         max_coroutines=max_coroutines,
     )
 
@@ -283,6 +296,13 @@ async def _run_one_graph(
                 graphiti, sample.question, settings, group_id, num_results
             )
         usage = dict(getattr(graphiti.llm_client, "usage", {}) or {})
+        # Fold the reranker's own LLM calls into the reported total so the cost block
+        # prices the rerank, not just extraction (the ListwiseReranker tracks usage; the
+        # stock OpenAIRerankerClient does not, contributing nothing).
+        rerank_usage = getattr(graphiti.cross_encoder, "usage", None)
+        if isinstance(rerank_usage, dict):
+            for key in ("llm_calls", "prompt_tokens", "completion_tokens", "total_tokens"):
+                usage[key] = int(usage.get(key, 0)) + int(rerank_usage.get(key, 0))
     finally:
         await graphiti.close()
     return out, usage
