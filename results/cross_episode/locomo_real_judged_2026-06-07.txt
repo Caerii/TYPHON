@@ -1,0 +1,42 @@
+### Real-LoCoMo on the SOTA axis: generative reader + LLM-as-judge (J-score)
+Run date: 2026-06-07. Benchmark: locomo_real (conv-26), 12 multi-hop QA, shared-graph.
+Reader + judge: meta-llama/Llama-3.3-70B-Instruct-Turbo (Together), temp=0.
+Method: post-hoc over the SAME retrieved facts each baseline saw (typhon.eval.generation +
+scripts/judge_run.py) — an LLM composes an answer, a second LLM grades it vs the reference.
+This is the metric every agent-memory SOTA number uses (Mem0/Zep/...), unlike extractive recall.
+
+## Result
+========================================================================
+baseline                       n   J-acc  correct  mean_recall  judge_tok      usd
+attention_baseline            12     0.0        0       0.0917       9971  0.008774
+graphiti_cross_episode        12  0.1667        2       0.1528      15837  0.013937
+------------------------------------------------------------------------
+  graphiti is the ONLY baseline that answers any question correctly (2 vs 0).
+  SOTA context (other systems, LLM-judge): Mem0 ~92.5, Zep ~75 — we are far below; the gap is
+  RETRIEVAL/EXTRACTION quality, now measurable on the right axis.
+
+## Why this matters more than token_recall (the q011 smoking gun)
+q011 "Where did Caroline move from 4 years ago?"  reference = "Sweden"
+  - extractive token_recall = 1.0 (PERFECT) — because a retrieved fact contained the word
+    "Sweden": "Caroline received a necklace from her grandma in Sweden".
+  - that fact does NOT answer the question. The generative reader said "I don't know"; the judge
+    scored it WRONG. => token_recall was a FALSE POSITIVE; the J-score is honest.
+
+## Honest reading
+- The reader is conservative — it says "I don't know" when the retrieved facts don't contain the
+  answer (10/12 for attention, several for graphiti). It does NOT hallucinate. Good behavior; the
+  low score reflects genuine retrieval gaps, not a broken reader.
+- attention 0/12: structurally out-of-window, so it never holds the cross-session fact (10 "I
+  don't know" + 2 wrong guesses). Expected.
+- graphiti 2/12: recalls cross-session facts (q002 fields, q004 identity) but the right fact is
+  often missing from the graph or out-ranked. Two extraction calls hit the 16K cap (lost facts).
+- The judge has known leniency (q002 "Art, social work, counseling" graded correct vs ref
+  "Psychology, counseling certification" — shares "counseling"). LLM-judge noise; report as such.
+- n=1 conversation, 12 QA — a signal, not a sweep.
+
+## What this buys / next
+- TYPHON can now report a SOTA-COMPARABLE J-score (typhon.eval.generation + aggregate
+  llm_judge_accuracy). Re-judge any frozen run for free: `python scripts/judge_run.py`.
+- The number says the lever is retrieval, not measurement: Tier 2 (turn on the cross-encoder
+  reranker + center-node search; HippoRAG-2 PPR multi-hop; query decomposition) and Tier 3 (fix
+  the 16K extraction cap). See docs/research-notes/sota-agent-memory-2026.md.

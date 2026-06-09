@@ -1,0 +1,73 @@
+
+### SCENARIO: supersession  (benchmark=locomo, window_tokens=None)
+============================================================
+metric                               attention    graphiti
+------------------------------------------------------------
+stale LEAKED (lower=better)                3/3         0/3
+mean token_recall (all)                 0.9036       0.325
+============================================================
+--- supersession / ATTENTION ---
+  [other        ] locomo_local_001       rec=0.4286
+      -> Turn 29: The assistant is asked to place the Friday lunch order for Avery. Turn 2: Avery says they avoid dairy and usual
+  [other        ] locomo_local_002       rec=0.8
+      -> Turn 25: The assistant is asked to confirm the museum meetup details. Turn 6: Leo proposes a museum meetup during Priya'
+  [cross_episode] ce_recall_allergy      rec=1.0
+      -> Session 1: During onboarding, Mira mentioned she is allergic to peanuts and avoids them at every team event. Session 4: 
+  [supersession ] ce_supersede_ratelimit rec=1.0  <STALE-LEAK>
+      -> Session 3: After the outage we lowered the public API rate limit to 40 requests per minute. Session 1: We set the public
+  [supersession ] ce_supersede_owner     rec=1.0  <STALE-LEAK>
+      -> Session 3: Priya moved to the data team, and Sam now owns the billing service. Session 1: Priya owns the billing service
+  [cross_episode] ce_recall_renewal      rec=1.0
+      -> Session 1: Legal noted the vendor contract renews on March 14. Session 3: Finance asked us to prepare the renewal packet
+  [supersession ] ce_supersede_db        rec=1.0  <STALE-LEAK>
+      -> Session 3: We reversed course and will use SQLite for the new service to simplify deployment. Session 1: The team decide
+  [cross_episode] ce_recall_flights      rec=1.0
+      -> Session 4: We are finalizing Jordan's flight booking now. Session 1: Jordan told Riley that they dislike red-eye flights
+--- supersession / GRAPHITI ---
+  [other        ] locomo_local_001       rec=0.0 cur=0/sup=0
+      -> (empty)
+  [other        ] locomo_local_002       rec=0.6 cur=5/sup=0
+      -> Leo proposes a museum meetup in Chicago Leo proposes a museum meetup with Priya
+  [cross_episode] ce_recall_allergy      rec=0.0 cur=0/sup=0
+      -> (empty)
+  [supersession ] ce_supersede_ratelimit rec=0.0 cur=0/sup=0
+      -> (empty)
+  [supersession ] ce_supersede_owner     rec=1.0 cur=2/sup=1
+      -> Sam owns the billing service Priya moved to the data team
+  [cross_episode] ce_recall_renewal      rec=0.0 cur=0/sup=0
+      -> (empty)
+  [supersession ] ce_supersede_db        rec=0.0 cur=0/sup=0
+      -> (empty)
+  [cross_episode] ce_recall_flights      rec=1.0 cur=5/sup=0
+      -> Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work. Jordan and Ri
+
+### SCENARIO: window_recall  (benchmark=locomo_window, window_tokens=40)
+============================================================
+metric                               attention    graphiti
+------------------------------------------------------------
+window_recall mean recall                  0.0         0.2
+recall hits (rec>0.5)                      0/5         1/5
+mean token_recall (all)                    0.0         0.2
+============================================================
+--- window_recall / ATTENTION ---
+  [window_recall] win_security_lead      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. the whole floor clea
+  [window_recall] win_allhands_city      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. out in about ten min
+  [window_recall] win_mascot_name        rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. and the whole floor 
+  [window_recall] win_runbook_owner      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. cleared out in about
+  [window_recall] win_design_partner     rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. about ten minutes fl
+--- window_recall / GRAPHITI ---
+  [window_recall] win_security_lead      rec=0.0 cur=0/sup=0
+      -> (empty)
+  [window_recall] win_allhands_city      rec=1.0 cur=1/sup=0
+      -> Priya confirmed the company all-hands will be held in the Lisbon office this year
+  [window_recall] win_mascot_name        rec=0.0 cur=0/sup=0
+      -> (empty)
+  [window_recall] win_runbook_owner      rec=0.0 cur=0/sup=0
+      -> (empty)
+  [window_recall] win_design_partner     rec=0.0 cur=0/sup=0
+      -> (empty)

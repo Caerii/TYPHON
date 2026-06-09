@@ -1,0 +1,409 @@
+{
+  "ok": true,
+  "scenarios": {
+    "supersession": {
+      "benchmark": "locomo",
+      "chunk_size": null,
+      "local_window_tokens": null,
+      "attention_baseline": {
+        "aggregate": {
+          "n": 8,
+          "mean_token_recall": 0.9036,
+          "mean_token_f1": 0.2216,
+          "supersession_n": 3,
+          "supersession_stale_leaked": 3,
+          "window_recall_n": 0,
+          "window_recall_mean_recall": null,
+          "window_recall_hits": 0
+        },
+        "rows": [
+          {
+            "sample_id": "locomo_local_001",
+            "probe": "other",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.2222,
+            "token_recall": 0.4286,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Turn 29: The assistant is asked to place the Friday lunch order for Avery. Turn 2: Avery says they avoid dairy and usually pick vegan meals for team lunches."
+          },
+          {
+            "sample_id": "locomo_local_002",
+            "probe": "other",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.4,
+            "token_recall": 0.8,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Turn 25: The assistant is asked to confirm the museum meetup details. Turn 6: Leo proposes a museum meetup during Priya's Chicago stop."
+          },
+          {
+            "sample_id": "ce_recall_allergy",
+            "probe": "cross_episode_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.16,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 1: During onboarding, Mira mentioned she is allergic to peanuts and avoids them at every team event. Session 4: We still need to decide which snacks are safe to order for the retro."
+          },
+          {
+            "sample_id": "ce_supersede_ratelimit",
+            "probe": "supersession",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.381,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": "100",
+            "stale_leaked": true,
+            "predicted_answer": "Session 3: After the outage we lowered the public API rate limit to 40 requests per minute. Session 1: We set the public API rate limit to 100 requests per minute."
+          },
+          {
+            "sample_id": "ce_supersede_owner",
+            "probe": "supersession",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.125,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": "Priya owns",
+            "stale_leaked": true,
+            "predicted_answer": "Session 3: Priya moved to the data team, and Sam now owns the billing service. Session 1: Priya owns the billing service and handles its on-call."
+          },
+          {
+            "sample_id": "ce_recall_renewal",
+            "probe": "cross_episode_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.2,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 1: Legal noted the vendor contract renews on March 14. Session 3: Finance asked us to prepare the renewal packet ahead of time."
+          },
+          {
+            "sample_id": "ce_supersede_db",
+            "probe": "supersession",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.1176,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": "Postgres",
+            "stale_leaked": true,
+            "predicted_answer": "Session 3: We reversed course and will use SQLite for the new service to simplify deployment. Session 1: The team decided to use Postgres for the new service."
+          },
+          {
+            "sample_id": "ce_recall_flights",
+            "probe": "cross_episode_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.1667,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 4: We are finalizing Jordan's flight booking now. Session 1: Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work."
+          }
+        ]
+      },
+      "graphiti_cross_episode": {
+        "aggregate": {
+          "n": 8,
+          "mean_token_recall": 0.8545,
+          "mean_token_f1": 0.2796,
+          "supersession_n": 3,
+          "supersession_stale_leaked": 3,
+          "window_recall_n": 0,
+          "window_recall_mean_recall": null,
+          "window_recall_hits": 0
+        },
+        "rows": [
+          {
+            "sample_id": "locomo_local_001",
+            "probe": "other",
+            "episodes": 4,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.1739,
+            "token_recall": 0.2857,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Avery \u2014 Avery avoids dairy and usually picks vegan meals for team lunches. Jordan \u2014 Jordan suggests trying the new pizza place on Friday."
+          },
+          {
+            "sample_id": "locomo_local_002",
+            "probe": "other",
+            "episodes": 4,
+            "current_facts": 10,
+            "superseded_facts": 0,
+            "token_f1": 0.4211,
+            "token_recall": 0.8,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Priya \u2014 Priya will be in Chicago on Thursday\nPriya will be in Boston on Saturday\nLeo proposes a museum meetup during Priya's Chicago stop\nPriya stops in Chicago Leo proposes a museum meetup during Priya's Chicago stop"
+          },
+          {
+            "sample_id": "ce_recall_allergy",
+            "probe": "cross_episode_recall",
+            "episodes": 4,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.2667,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Mira \u2014 Mira is allergic to peanuts and avoids them at team events. Devon \u2014 Devon volunteered to bring snacks for the Friday retro."
+          },
+          {
+            "sample_id": "ce_supersede_ratelimit",
+            "probe": "supersession",
+            "episodes": 4,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.375,
+            "token_recall": 0.75,
+            "exact_match": false,
+            "stale_value": "100",
+            "stale_leaked": true,
+            "predicted_answer": "customer \u2014 Customer asked to confirm the current public API rate limit. public API \u2014 public API rate limit is 100 requests per minute"
+          },
+          {
+            "sample_id": "ce_supersede_owner",
+            "probe": "supersession",
+            "episodes": 4,
+            "current_facts": 8,
+            "superseded_facts": 2,
+            "token_f1": 0.1667,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": "Priya owns",
+            "stale_leaked": true,
+            "predicted_answer": "Priya \u2014 Priya owns the billing service\nPriya handles the on-call\nPriya moved away from the billing service\nPriya moved to the data team billing service \u2014 Priya owns the billing service\nPriya moved away from the billing service\nSam owns the billing service"
+          },
+          {
+            "sample_id": "ce_recall_renewal",
+            "probe": "cross_episode_recall",
+            "episodes": 4,
+            "current_facts": 5,
+            "superseded_facts": 0,
+            "token_f1": 0.4,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "March 14 \u2014 March 14 is the renewal date of the vendor contract. Legal noted renewal of vendor contract"
+          },
+          {
+            "sample_id": "ce_supersede_db",
+            "probe": "supersession",
+            "episodes": 4,
+            "current_facts": 3,
+            "superseded_facts": 0,
+            "token_f1": 0.1667,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": "Postgres",
+            "stale_leaked": true,
+            "predicted_answer": "SQLite \u2014 SQLite will be used for the new service to simplify deployment, replacing the initial choice of Postgres. Postgres \u2014 Postgres is used for the new service."
+          },
+          {
+            "sample_id": "ce_recall_flights",
+            "probe": "cross_episode_recall",
+            "episodes": 4,
+            "current_facts": 5,
+            "superseded_facts": 0,
+            "token_f1": 0.2667,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work. Riley \u2014 Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work."
+          }
+        ]
+      }
+    },
+    "window_recall": {
+      "benchmark": "locomo_window",
+      "chunk_size": 40,
+      "local_window_tokens": 40,
+      "attention_baseline": {
+        "aggregate": {
+          "n": 5,
+          "mean_token_recall": 0.0,
+          "mean_token_f1": 0.0,
+          "supersession_n": 0,
+          "supersession_stale_leaked": 0,
+          "window_recall_n": 5,
+          "window_recall_mean_recall": 0.0,
+          "window_recall_hits": 0
+        },
+        "rows": [
+          {
+            "sample_id": "win_security_lead",
+            "probe": "window_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.0,
+            "token_recall": 0.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 6: There was a long thread about which lunch spots near the office everyone actually liked. the whole floor cleared out in about ten minutes flat."
+          },
+          {
+            "sample_id": "win_allhands_city",
+            "probe": "window_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.0,
+            "token_recall": 0.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 6: There was a long thread about which lunch spots near the office everyone actually liked. out in about ten minutes flat."
+          },
+          {
+            "sample_id": "win_mascot_name",
+            "probe": "window_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.0,
+            "token_recall": 0.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 6: There was a long thread about which lunch spots near the office everyone actually liked. and the whole floor cleared out in about ten minutes flat."
+          },
+          {
+            "sample_id": "win_runbook_owner",
+            "probe": "window_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.0,
+            "token_recall": 0.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 6: There was a long thread about which lunch spots near the office everyone actually liked. cleared out in about ten minutes flat."
+          },
+          {
+            "sample_id": "win_design_partner",
+            "probe": "window_recall",
+            "episodes": null,
+            "current_facts": null,
+            "superseded_facts": null,
+            "token_f1": 0.0,
+            "token_recall": 0.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Session 6: There was a long thread about which lunch spots near the office everyone actually liked. about ten minutes flat."
+          }
+        ]
+      },
+      "graphiti_cross_episode": {
+        "aggregate": {
+          "n": 5,
+          "mean_token_recall": 1.0,
+          "mean_token_f1": 0.1197,
+          "supersession_n": 0,
+          "supersession_stale_leaked": 0,
+          "window_recall_n": 5,
+          "window_recall_mean_recall": 1.0,
+          "window_recall_hits": 5
+        },
+        "rows": [
+          {
+            "sample_id": "win_security_lead",
+            "probe": "window_recall",
+            "episodes": 6,
+            "current_facts": 6,
+            "superseded_facts": 0,
+            "token_f1": 0.1818,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Dana \u2014 Dana was named as security lead\nDana owns all incident response for the platform team Dana was named as security lead"
+          },
+          {
+            "sample_id": "win_allhands_city",
+            "probe": "window_recall",
+            "episodes": 6,
+            "current_facts": 3,
+            "superseded_facts": 0,
+            "token_f1": 0.1818,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Priya confirmed the company all-hands will be held in the Lisbon office this year. Lisbon office \u2014 Priya confirmed the company all-hands will be held in the Lisbon office this year."
+          },
+          {
+            "sample_id": "win_mascot_name",
+            "probe": "window_recall",
+            "episodes": 6,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.08,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Pixel \u2014 Pixel is a small fox and the launch mascot, appearing on the landing page. office \u2014 has a coffee machine, is near lunch spots, and had a fire drill on Friday that cleared the whole floor in ten minutes."
+          },
+          {
+            "sample_id": "win_runbook_owner",
+            "probe": "window_recall",
+            "episodes": 6,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.0714,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Marcus \u2014 Marcus volunteered to maintain the deployment runbook going forward and keep it up to date. office \u2014 has a coffee machine, is near lunch spots, and had a fire drill on Friday that cleared the whole floor in about ten minutes."
+          },
+          {
+            "sample_id": "win_design_partner",
+            "probe": "window_recall",
+            "episodes": 6,
+            "current_facts": 2,
+            "superseded_facts": 0,
+            "token_f1": 0.0833,
+            "token_recall": 1.0,
+            "exact_match": false,
+            "stale_value": null,
+            "stale_leaked": false,
+            "predicted_answer": "Northwind \u2014 Northwind is the launch design partner for the upcoming release. office \u2014 has weekly standup meetings, a coffee machine, and onboarding slides, and had a fire drill on Friday that cleared the floor in 10 minutes."
+          }
+        ]
+      }
+    }
+  }
+}

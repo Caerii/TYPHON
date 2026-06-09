@@ -1,0 +1,78 @@
+
+### SCENARIO: supersession  (benchmark=locomo, window_tokens=None)
+============================================================
+metric                               attention    graphiti
+------------------------------------------------------------
+stale LEAKED (lower=better)                3/3         3/3
+mean token_recall (all)                 0.9036      0.8545
+============================================================
+--- supersession / ATTENTION ---
+  [other        ] locomo_local_001       rec=0.4286
+      -> Turn 29: The assistant is asked to place the Friday lunch order for Avery. Turn 2: Avery says they avoid dairy and usual
+  [other        ] locomo_local_002       rec=0.8
+      -> Turn 25: The assistant is asked to confirm the museum meetup details. Turn 6: Leo proposes a museum meetup during Priya'
+  [cross_episode] ce_recall_allergy      rec=1.0
+      -> Session 1: During onboarding, Mira mentioned she is allergic to peanuts and avoids them at every team event. Session 4: 
+  [supersession ] ce_supersede_ratelimit rec=1.0  <STALE-LEAK>
+      -> Session 3: After the outage we lowered the public API rate limit to 40 requests per minute. Session 1: We set the public
+  [supersession ] ce_supersede_owner     rec=1.0  <STALE-LEAK>
+      -> Session 3: Priya moved to the data team, and Sam now owns the billing service. Session 1: Priya owns the billing service
+  [cross_episode] ce_recall_renewal      rec=1.0
+      -> Session 1: Legal noted the vendor contract renews on March 14. Session 3: Finance asked us to prepare the renewal packet
+  [supersession ] ce_supersede_db        rec=1.0  <STALE-LEAK>
+      -> Session 3: We reversed course and will use SQLite for the new service to simplify deployment. Session 1: The team decide
+  [cross_episode] ce_recall_flights      rec=1.0
+      -> Session 4: We are finalizing Jordan's flight booking now. Session 1: Jordan told Riley that they dislike red-eye flights
+--- supersession / GRAPHITI ---
+  [other        ] locomo_local_001       rec=0.2857 cur=2/sup=0
+      -> Avery — Avery avoids dairy and usually picks vegan meals for team lunches. Jordan — Jordan suggests trying the new pizza
+  [other        ] locomo_local_002       rec=0.8 cur=13/sup=0
+      -> Priya — Priya will be in Chicago on Thursday
+Priya will be in Boston on Saturday
+Leo proposes a museum meetup with Priya
+  [cross_episode] ce_recall_allergy      rec=1.0 cur=2/sup=0
+      -> Mira — Mira is allergic to peanuts and avoids them at team events. Devon — Devon volunteered to bring snacks for the Fri
+  [supersession ] ce_supersede_ratelimit rec=0.75 cur=2/sup=0  <STALE-LEAK>
+      -> customer — Customer asked to confirm the current public API rate limit. public API — public API rate limit is 100 reques
+  [supersession ] ce_supersede_owner     rec=1.0 cur=7/sup=3  <STALE-LEAK>
+      -> Priya — Priya owns the billing service
+Priya handles the on-call
+Priya moved to the data team billing service — Priya ow
+  [cross_episode] ce_recall_renewal      rec=1.0 cur=5/sup=0
+      -> March 14 — March 14 is the renewal date of the vendor contract. Legal noted the renewal of vendor contract
+  [supersession ] ce_supersede_db        rec=1.0 cur=3/sup=0  <STALE-LEAK>
+      -> SQLite — SQLite will be used for the new service to simplify deployment, replacing the initial choice of Postgres. Postg
+  [cross_episode] ce_recall_flights      rec=1.0 cur=5/sup=0
+      -> Jordan told Riley that they dislike red-eye flights and prefer morning departures when traveling for work. Riley — Jorda
+
+### SCENARIO: window_recall  (benchmark=locomo_window, window_tokens=40)
+============================================================
+metric                               attention    graphiti
+------------------------------------------------------------
+window_recall mean recall                  0.0         1.0
+recall hits (rec>0.5)                      0/5         5/5
+mean token_recall (all)                    0.0         1.0
+============================================================
+--- window_recall / ATTENTION ---
+  [window_recall] win_security_lead      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. the whole floor clea
+  [window_recall] win_allhands_city      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. out in about ten min
+  [window_recall] win_mascot_name        rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. and the whole floor 
+  [window_recall] win_runbook_owner      rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. cleared out in about
+  [window_recall] win_design_partner     rec=0.0
+      -> Session 6: There was a long thread about which lunch spots near the office everyone actually liked. about ten minutes fl
+--- window_recall / GRAPHITI ---
+  [window_recall] win_security_lead      rec=1.0 cur=6/sup=0
+      -> Dana — Dana was named as security lead
+Dana owns all incident response for the platform team Dana was named as security 
+  [window_recall] win_allhands_city      rec=1.0 cur=3/sup=0
+      -> Priya confirmed all-hands will be held at Lisbon office this year Lisbon office — Priya confirmed all-hands will be held
+  [window_recall] win_mascot_name        rec=1.0 cur=2/sup=0
+      -> Pixel — Pixel is a small fox and the launch mascot that will appear on the landing page. office — office has a coffee ma
+  [window_recall] win_runbook_owner      rec=1.0 cur=2/sup=0
+      -> Marcus — Marcus volunteered to maintain the deployment runbook going forward and keep it up to date. office — has a coff
+  [window_recall] win_design_partner     rec=1.0 cur=2/sup=0
+      -> Northwind — Northwind is the launch design partner for the upcoming release. office — office has nearby lunch spots, had

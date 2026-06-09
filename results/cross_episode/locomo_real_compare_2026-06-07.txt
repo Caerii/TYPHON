@@ -1,0 +1,57 @@
+### Real-LoCoMo generalization + cost — graphiti_cross_episode vs attention_baseline
+Run date: 2026-06-07. Benchmark: locomo_real (snap-research conv-26), 12 multi-hop QA.
+Mode: shared-graph (conversation ingested once, all 12 QA answered against it).
+Extraction LLM: meta-llama/Llama-3.3-70B-Instruct-Turbo (Together), node_text_mode=attributes.
+Raw artifacts: _runs_real/ (gitignored — repeats the long context per QA). JSON: this dir.
+
+## Headline (aggregate, n=12)
+============================================================
+baseline                       n   mean_recall  exact    tokens       usd
+attention_baseline            12        0.0917      0         0         0
+graphiti_cross_episode        12        0.1528      0    519831  0.457451
+------------------------------------------------------------
+  graphiti token-recall lift: +0.0611 absolute = +66.6% relative.
+  exact_match 0 for both (extractive prediction won't emit exact short-answer strings).
+
+## Per-sample token_recall (the mean hides a mixed result — report both)
+============================================================
+sample   attention  graphiti   delta
+q000        0.000     0.000    +0.000   tie (both miss)
+q001        0.000     0.000    +0.000   tie (both miss)
+q002        0.000     0.333    +0.333   graphiti win
+q003        0.000     0.500    +0.500   graphiti win
+q004        0.000     0.000    +0.000   tie (both miss)
+q005        0.200     0.000    -0.200   attention win
+q006        0.500     0.000    -0.500   attention win
+q007        0.000     0.000    +0.000   tie (both miss)
+q008        0.200     0.000    -0.200   attention win
+q009        0.200     0.000    -0.200   attention win
+q010        0.000     0.000    +0.000   tie (both miss)
+q011        0.000     1.000    +1.000   graphiti win (perfect — the cross-session case)
+------------------------------------------------------------
+  graphiti wins 3 (q002,q003,q011), loses 4 (q005,q006,q008,q009), ties 5.
+  The aggregate win is driven by cross-session questions a bounded window can't reach
+  (q011: 1.0 vs 0.0). Where attention wins, the answer was recent/in-window and graphiti's
+  extraction dropped or mis-ranked the fact — i.e. the extraction ceiling, not retrieval.
+
+## Cost (one-time per-conversation ingestion, amortized across the 12 QA)
+============================================================
+  llm_model            meta-llama/Llama-3.3-70B-Instruct-Turbo
+  episodes              41 (conv-26 split into ordered sessions/chunks)
+  llm_calls            216        (~5.3 calls/episode: extract nodes/edges, resolve, attrs, summary)
+  prompt_tokens        497,221
+  completion_tokens     22,610
+  total_tokens         519,831    (12,679 tok/episode)
+  usd_estimate         $0.457451  @ $0.88 / 1M tokens
+  amortized            ~$0.038 / question (cheaper as more QA hit the same conversation)
+
+## Honest caveats
+- Absolute recall is low for BOTH baselines: the shared prediction path is extractive
+  (build_prediction_block selects retrieved text), not a generative LLM composing answers.
+  The comparison isolates RETRIEVAL quality; the +66% relative is the signal, not the floor.
+- 2 extraction calls hit the 16K completion-length cap and failed even after one retry
+  (Llama-3.3-70B over-generates on the messier real episodes). Some facts were lost, and
+  the ~33K wasted completion tokens are included in the $0.46. Better/chunked extraction
+  would likely widen the lift — consistent with the standing "extraction is the bottleneck".
+- n=1 conversation, 12 QA: a generalization SIGNAL beyond the synthetic probes, not a full
+  LoCoMo sweep. Per-sample graphs + synthetic valid-times remain (baseline limitations).

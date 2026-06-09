@@ -1,0 +1,24 @@
+{
+  "benchmark": "locomo_real",
+  "shared_key": "conversation",
+  "variants": {
+    "graphiti_rrf": {
+      "baseline_id": "graphiti_cross_episode",
+      "n": 12,
+      "mean_token_recall": 0.1944,
+      "llm_judge_accuracy": 0.0833,
+      "llm_judge_correct": 1,
+      "llm_judge_n": 12,
+      "judge_tokens": 16040
+    },
+    "graphiti_cross_encoder": {
+      "baseline_id": "graphiti_cross_episode_cross_encoder",
+      "n": 12,
+      "mean_token_recall": 0.125,
+      "llm_judge_accuracy": 0.1667,
+      "llm_judge_correct": 2,
+      "llm_judge_n": 12,
+      "judge_tokens": 15337
+    }
+  }
+}

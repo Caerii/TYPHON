@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 adapter_hf = ["datasets>=2.19,<4"]
+dev = ["pytest>=8"]
 
 [project.scripts]
 typhon = "typhon.cli:main"
@@ -21,3 +22,8 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

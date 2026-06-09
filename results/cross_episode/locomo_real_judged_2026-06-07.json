@@ -1,0 +1,54 @@
+{
+  "results_dir": "F:\\Github\\platform-typhon\\results\\cross_episode\\_runs_real",
+  "generate": true,
+  "baselines": {
+    "attention_baseline": {
+      "aggregate": {
+        "n": 12,
+        "mean_token_recall": 0.0917,
+        "mean_token_f1": 0.0265,
+        "exact_match_count": 0,
+        "llm_judge_n": 12,
+        "llm_judge_correct": 0,
+        "llm_judge_accuracy": 0.0,
+        "supersession_n": 0,
+        "supersession_stale_leaked": 0,
+        "supersession_stale_dominant": 0,
+        "supersession_clean": 0,
+        "supersession_current_recalled": 0,
+        "window_recall_n": 0,
+        "window_recall_hits": 0,
+        "window_recall_mean_recall": null
+      },
+      "judge_cost": {
+        "llm_calls": 24,
+        "total_tokens": 9971,
+        "usd_estimate": 0.008774
+      }
+    },
+    "graphiti_cross_episode": {
+      "aggregate": {
+        "n": 12,
+        "mean_token_recall": 0.1528,
+        "mean_token_f1": 0.0047,
+        "exact_match_count": 0,
+        "llm_judge_n": 12,
+        "llm_judge_correct": 2,
+        "llm_judge_accuracy": 0.1667,
+        "supersession_n": 0,
+        "supersession_stale_leaked": 0,
+        "supersession_stale_dominant": 0,
+        "supersession_clean": 0,
+        "supersession_current_recalled": 0,
+        "window_recall_n": 0,
+        "window_recall_hits": 0,
+        "window_recall_mean_recall": null
+      },
+      "judge_cost": {
+        "llm_calls": 24,
+        "total_tokens": 15837,
+        "usd_estimate": 0.013937
+      }
+    }
+  }
+}

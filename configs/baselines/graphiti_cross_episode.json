@@ -1,0 +1,40 @@
+{
+  "id": "graphiti_cross_episode",
+  "name": "Graphiti Cross-Episode Memory",
+  "description": "Long-term symbolic tier. Ingests the sample's sessions as episodes into a bi-temporal knowledge graph (Graphiti), then answers from facts retrieved across episodes. Uses the same extractive prediction path as attention_baseline, so the comparison isolates retrieval (temporal graph vs local window). Requires a graph backend (Neo4j) and an extraction LLM; emits a not_executed artifact when unavailable.",
+  "type": "cross_episode_symbolic_memory",
+  "retrieval_strategy": "temporal_graph_hybrid_search",
+  "uses_runtime_profile": true,
+  "supports_families": [
+    "conversational_memory",
+    "streaming_agentic_memory",
+    "continual_learning",
+    "long_context_reasoning"
+  ],
+  "local_window_policy": "external_store",
+  "max_chunks_to_retrieve": 8,
+  "settings": {
+    "session_delimiter": "\n\n",
+    "session_regex": null,
+    "max_episode_chars": 2000,
+    "graph_uri_env": "GRAPH_URI",
+    "graph_user_env": "GRAPH_USER",
+    "graph_password_env": "GRAPH_PASSWORD",
+    "require_graph_uri": true,
+    "require_llm_key": true,
+    "prefer_current": true,
+    "current_facts_only": true,
+    "guided_extraction": true,
+    "search_mode": "combined",
+    "search_variant": "rrf",
+    "node_text_mode": "attributes",
+    "shared_graph_key": null,
+    "llm_base_url": "https://api.together.xyz/v1",
+    "llm_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "small_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "embedding_model": "intfloat/multilingual-e5-large-instruct",
+    "embedding_dim": 1024,
+    "max_coroutines": 1,
+    "num_results": 8
+  }
+}

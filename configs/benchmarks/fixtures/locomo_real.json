@@ -1,0 +1,8 @@
+{
+  "task_type": "conversation_qa",
+  "question": "When did Caroline go to the LGBTQ support group?",
+  "context": "Session 1: (1:56 pm on 8 May, 2023) Caroline: Hey Mel! Good to see you. Melanie: You too! How have you been? Caroline: Pretty good. I finally went to that LGBTQ support group on the 7th of May and it was lovely. Session 2: (3:10 pm on 15 May, 2023) Melanie: I went to the beach this weekend with the kids. Caroline: That sounds wonderful. Session 3: (9:02 am on 2 June, 2023) Caroline: I've been thinking back on how supported I felt at that group last month.",
+  "expected_answer_type": "short_text",
+  "reference_answer": "7 May 2023",
+  "metadata": {"conversation": "fixture", "category": 2, "adversarial": false, "evidence": ["D1:3"]}
+}

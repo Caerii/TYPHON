@@ -1,0 +1,60 @@
+### Tier 2, Phase 1 — listwise reranker on real-LoCoMo (RRF vs reranked)
+Run date: 2026-06-08. Benchmark: locomo_real (conv-26), 12 multi-hop QA, shared-graph.
+Reranker + reader + judge: meta-llama/Llama-3.3-70B-Instruct-Turbo (Together), temp=0.
+Method: each variant ingests the SAME conversation into its OWN clean graph (Neo4j wiped
+between), so only the search/rerank differs. Then scored two ways: extractive token_recall
+AND the SOTA-axis J-score (an LLM composes an answer from the retrieved facts; a second LLM
+grades it vs the reference — the metric Mem0/Zep report).
+
+## Result
+========================================================================
+variant                      n  token_recall   J-acc  correct  judge_tok
+------------------------------------------------------------------------
+RRF (baseline)              12        0.1944  0.0833     1/12      16040
+Cross-Encoder rerank        12        0.1250  0.1667     2/12      15337
+------------------------------------------------------------------------
+Deltas (Cross-Encoder vs RRF):
+  token_recall: -0.0694   (DOWN — expected, see below)
+  J-score:      +0.0834   (0.0833 -> 0.1667; 1/12 -> 2/12 correct)
+
+## The two metrics move in OPPOSITE directions — and that is the whole point
+The reranker LOWERED token_recall but RAISED J-score. This is not a contradiction; it is the
+q011 lesson at scale. token_recall rewards lexical overlap with the reference, so a vague,
+word-sharing distractor inflates it without answering the question. The reranker demotes those
+distractors out of the top-k — which costs token_recall — and promotes the facts that actually
+answer the question — which the generative reader then composes correctly. We are optimizing
+the axis SOTA reports (J-score), and on that axis reranking helped.
+
+## The clean win (q004 — a real retrieval improvement, not judge noise)
+q004 "What is Caroline's identity?"  reference = "Transgender"
+  - RRF top facts: "Embracing Identity represents Caroline's journey of acceptance",
+    "Caroline created Embracing Identity", ... (heavy "identity" word-overlap, but vague).
+    Reader could only infer "LGBTQ" -> judged WRONG.
+  - Cross-Encoder top fact (reranked to #1): "Caroline is attending a transgender conference."
+    Reader answered "Transgender." -> judged CORRECT.
+  The reranker pulled the one specifically-relevant fact above the vague lexical-overlap
+  facts. This is the listwise reranker (reranker.py) doing exactly what it was built to do.
+
+## Why this needed a new reranker at all
+Graphiti's stock OpenAIRerankerClient ranks by reading per-token logprobs of a forced
+"True"/"False", nudged with logit_bias={'6432','7983'} (OpenAI tokenizer IDs). Together/Llama
+returns an EMPTY logprobs.content, so the stock client's zip(passages, scores, strict=True)
+raises — the cross_encoder recipe crashes on every non-OpenAI backend (verified). We replaced
+it with a backend-agnostic ListwiseReranker: ONE strict-structured-output call scores all
+passages at once (RankGPT-style), Pydantic-validated, usage-counted, fail-closed to input
+order. Portable to local models — the TYPHON thesis (scaffolding > model size).
+
+## Honest reading
+- n=1 conversation, 12 QA. The J gain is +1 correct answer (q004). A signal, not a sweep;
+  variance at this scale is one flipped question = +8.3%. Report it as such.
+- Both variants re-ingest (temp=0, so near-identical graphs, not bit-identical). A stricter
+  design ingests once and searches the one graph two ways — a Phase-1.5 cleanup.
+- Both variants hit the 16K extraction cap on a couple of episodes (Tier 3); equal to both.
+- We remain far below SOTA (75-92%); reranking is one lever. Still open: PPR multi-hop,
+  query decomposition (rest of Tier 2), and the extraction cap (Tier 3).
+
+## Cost
+Reranker adds ~1 LLM call per question (listwise, all passages at once): cheap. Judge cost
+~16K tok/variant (~$0.014). Reproduce:
+  TOGETHER_API_KEY=... GRAPH_URI=bolt://localhost:7687 GRAPH_USER=neo4j GRAPH_PASSWORD=... \
+      python scripts/tier2_compare.py
